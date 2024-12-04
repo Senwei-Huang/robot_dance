@@ -1,2 +1,9 @@
 # 训练机器人完成跳舞动作，使用legged_gym rsl_rl库
 参考：https://github.com/inspirai/MetalHead
+安装：
+补充安装：
+`
+conda install numpy=1.23
+pip install setuptools==59.5.0
+pip install protobuf==3.20.*
+`
