@@ -20,3 +20,6 @@ os.system("python legged_gym/legged_gym/scripts/train.py --task=go2_dance_trot -
 # python legged_gym/legged_gym/scripts/train.py --task=panda7_fixed_arm_wave --num_envs=40960 --headless
 # python legged_gym/legged_gym/scripts/train.py --task=panda7_fixed_arm_trot --num_envs=40960 --headless
 # python legged_gym/legged_gym/scripts/train.py --task=panda7_fixed_arm_pace --num_envs=40960 --headless
+
+python legged_gym/legged_gym/scripts/train.py --task=panda7_fixed_gripper_beat --num_envs=4096
+python legged_gym/legged_gym/scripts/play_panda.py --task=panda7_fixed_gripper_beat --num_envs=1
