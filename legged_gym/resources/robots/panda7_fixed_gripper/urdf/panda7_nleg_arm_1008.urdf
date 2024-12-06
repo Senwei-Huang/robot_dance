@@ -56,7 +56,7 @@
   <!-- Imu link -->
   <link name="imu">
     <inertial>
-      <mass value="0.01"/>
+      <mass value="0.1"/>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001"/>
     </inertial>
@@ -446,7 +446,7 @@
   </link>
   <joint
     name="arm_joint7"
-    type="prismatic">
+    type="fixed"> <!-- prismatic -->
     <origin
       xyz="-0.0218441952806044 -0.00464472233071411 0.070282758534191"
       rpy="0.00229467780858847 1.55494011731642 -3.14159265358975" />
@@ -495,7 +495,7 @@
   </link>
   <joint
     name="arm_joint8"
-    type="prismatic">
+    type="fixed"> <!-- prismatic -->
     <origin
       xyz="0.0240124026414632 -0.00444997198895219 0.0692555480519135"
       rpy="-3.1392979757812 1.55494011731642 -3.14159265358975" />
@@ -597,7 +597,7 @@
       </geometry>
     </collision>
     <inertial>
-      <mass value="0.0001"/>
+      <mass value="0.12"/>
       <inertia ixx="1.000e-09" ixy="0.0" ixz="0.0" iyy="1.000e-09" iyz="0.0" izz="1.000e-09"/>
     </inertial>
   </link>
@@ -686,7 +686,7 @@
       </geometry>
     </collision>
     <inertial>
-      <mass value="0.0001"/>
+      <mass value="0.12"/>
       <inertia ixx="1.000e-09" ixy="0.0" ixz="0.0" iyy="1.000e-09" iyz="0.0" izz="1.000e-09"/>
     </inertial>
   </link>
@@ -775,7 +775,7 @@
       </geometry>
     </collision>
     <inertial>
-      <mass value="0.0001"/>
+      <mass value="0.12"/>
       <inertia ixx="1.000e-09" ixy="0.0" ixz="0.0" iyy="1.000e-09" iyz="0.0" izz="1.000e-09"/>
     </inertial>
   </link>
@@ -864,7 +864,7 @@
       </geometry>
     </collision>
     <inertial>
-      <mass value="0.0001"/>
+      <mass value="0.12"/>
       <inertia ixx="1.000e-09" ixy="0.0" ixz="0.0" iyy="1.000e-09" iyz="0.0" izz="1.000e-09"/>
     </inertial>
   </link>
