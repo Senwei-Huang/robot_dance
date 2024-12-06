@@ -23,3 +23,6 @@ os.system("python legged_gym/legged_gym/scripts/train.py --task=go2_dance_trot -
 
 python legged_gym/legged_gym/scripts/train.py --task=panda7_fixed_gripper_beat --num_envs=4096
 python legged_gym/legged_gym/scripts/play_panda.py --task=panda7_fixed_gripper_beat --num_envs=1
+
+~/robot_dance/legged_gym/logs/panda7_fixed_gripper_beat$ tensorboard --logdir Dec04_22-34-54_/
+
