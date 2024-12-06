@@ -1,5 +1,5 @@
 <?xml version="1.0" ?>
-<robot name="panda7">
+<robot name="robot">
   <material name="black">
     <color rgba="0.0 0.0 0.0 1.0"/>
   </material>
@@ -47,11 +47,41 @@
     </inertial>
   </link>
   
+  <!-- Imu is fixed to the base link -->
+  <joint name="imu_joint" type="fixed">
+    <origin rpy="0. 0. 0." xyz="0. 0. 0."/>
+    <parent link="base"/>
+    <child link="imu"/>
+  </joint>
+  <!-- Imu link -->
+  <link name="imu">
+    <inertial>
+      <mass value="0.1"/>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="0.015 0.015 0.004"/>
+      </geometry>
+    </visual>
+    <material name="orange">
+      <color rgba="255 108 10 255"/>
+    </material>
+  </link>
+  <gazebo reference="imu">
+    <material>Gazebo/Orange</material>
+  </gazebo>
+  <gazebo reference="imu_joint">
+    <disableFixedJointLumping>true</disableFixedJointLumping>
+  </gazebo>
+  
   <link
     name="arm_link0">
     <inertial>
       <origin
-        xyz="0 0 0.0306919872517665"
+        xyz="1.04193988601165E-17 -2.06800069864048E-18 0.0306919872517665"
         rpy="0 0 0" />
       <mass
         value="0.154950873811881" />
@@ -77,15 +107,6 @@
           rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
       </material>
     </visual>
-    <collision>
-      <origin
-        xyz="0 0 0"
-        rpy="0 0 0" />
-      <geometry>
-        <mesh
-          filename="../meshes/link0.dae" />
-      </geometry>
-    </collision>
   </link>
   <joint
     name="joint0"
@@ -128,15 +149,6 @@
           rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
       </material>
     </visual>
-    <collision>
-      <origin
-        xyz="0 0 0"
-        rpy="0 0 0" />
-      <geometry>
-        <mesh
-          filename="../meshes/link1.dae" />
-      </geometry>
-    </collision>
   </link>
   <joint
     name="arm_joint1"
@@ -186,15 +198,6 @@
           rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
       </material>
     </visual>
-    <collision>
-      <origin
-        xyz="0 0 0"
-        rpy="0 0 0" />
-      <geometry>
-        <mesh
-          filename="../meshes/link2.dae" />
-      </geometry>
-    </collision>
   </link>
   <joint
     name="arm_joint2"
@@ -218,7 +221,7 @@
     name="arm_link3">
     <inertial>
       <origin
-        xyz="0.141083874666792 -0.053068640664602 -0.00127575943922171"
+        xyz="0.14108 -0.053069 -0.0012758"
         rpy="0 0 0" />
       <mass
         value="0.451084119008658" />
@@ -244,15 +247,6 @@
           rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
       </material>
     </visual>
-    <collision>
-      <origin
-        xyz="0 0 0"
-        rpy="0 0 0" />
-      <geometry>
-        <mesh
-          filename="../meshes/link3.dae" />
-      </geometry>
-    </collision>
   </link>
   <joint
     name="arm_joint3"
@@ -276,17 +270,17 @@
     name="arm_link4">
     <inertial>
       <origin
-        xyz="0.0267887385724194 -0.0164315570697556 -0.0565411902556625"
+        xyz="0.033502 -0.027529 -0.0063895"
         rpy="0 0 0" />
       <mass
-        value="0.0428548065855341" />
+        value="0.042855" />
       <inertia
-        ixx="2.39253224731971E-05"
-        ixy="3.43459103284642E-06"
-        ixz="-4.25311575215457E-06"
-        iyy="2.5667513703355E-05"
-        iyz="2.17605924028942E-06"
-        izz="2.41189195200957E-05" />
+        ixx="2.3925E-05"
+        ixy="3.4346E-06"
+        ixz="-4.2531E-06"
+        iyy="2.5668E-05"
+        iyz="2.1761E-06"
+        izz="2.4119E-05" />
     </inertial>
     <visual>
       <origin
@@ -302,23 +296,12 @@
           rgba="1 1 1 1" />
       </material>
     </visual>
-    <collision>
-      <origin
-        xyz="0 0 0"
-        rpy="0 0 0" />
-      <geometry>
-        <mesh
-          filename="../meshes/link4.dae" />
-      </geometry>
-    </collision>
   </link>
-
-  <!-- xyz="0.251713743388397 -0.0670979052394916 0.049677" -->
   <joint
     name="arm_joint4"
     type="revolute">
     <origin
-      xyz="0.251713743388397 -0.0670979052394916 0"
+      xyz="0.245 -0.056 -0.000475"
       rpy="0 0 0" />
     <parent
       link="arm_link3" />
@@ -332,8 +315,6 @@
       effort="100"
       velocity="100" />
   </joint>
-  
-  <!-- "7.39496806869756E-05 0.00390756676405528 -0.0521915532008786" -->
   <link
     name="arm_link5">
     <inertial>
@@ -364,22 +345,13 @@
           rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
       </material>
     </visual>
-    <collision>
-      <origin
-        xyz="0 0 0"
-        rpy="0 0 0" />
-      <geometry>
-        <mesh
-          filename="../meshes/link5.dae" />
-      </geometry>
-    </collision>
   </link>
   <joint
     name="arm_joint5"
     type="revolute">
     <origin
-      xyz="0.0600362566116027 -0.0729020947605091 -0.0504267019672398"
-      rpy="1.5707963267949 1.5707963267949 0" />
+      xyz="0.06675 -0.084 -0.000275"
+      rpy="1.5708 1.5708 0" />
     <parent
       link="arm_link4" />
     <child
@@ -396,7 +368,7 @@
     name="arm_link6">
     <inertial>
       <origin
-        xyz="0.000493130461631647 9.84795725265109E-05 0.0316954745107463"
+        xyz="0.00049313 9.848E-05 0.031695"
         rpy="0 0 0" />
       <mass
         value="0.123916977852968" />
@@ -422,15 +394,6 @@
           rgba="1 1 1 1" />
       </material>
     </visual>
-    <collision>
-      <origin
-        xyz="0 0 0"
-        rpy="0 0 0" />
-      <geometry>
-        <mesh
-          filename="../meshes/link6.dae" />
-      </geometry>
-    </collision>
   </link>
   <joint
     name="arm_joint6"
@@ -480,15 +443,6 @@
           rgba="1 1 1 1" />
       </material>
     </visual>
-    <collision>
-      <origin
-        xyz="0 0 0"
-        rpy="0 0 0" />
-      <geometry>
-        <mesh
-          filename="../meshes/gripper1.dae" />
-      </geometry>
-    </collision>
   </link>
   <joint
     name="arm_joint7"
@@ -538,15 +492,6 @@
           rgba="1 1 1 1" />
       </material>
     </visual>
-    <collision>
-      <origin
-        xyz="0 0 0"
-        rpy="0 0 0" />
-      <geometry>
-        <mesh
-          filename="../meshes/gripper2.dae" />
-      </geometry>
-    </collision>
   </link>
   <joint
     name="arm_joint8"
@@ -652,7 +597,7 @@
       </geometry>
     </collision>
     <inertial>
-      <mass value="0.01"/>
+      <mass value="0.12"/>
       <inertia ixx="1.000e-09" ixy="0.0" ixz="0.0" iyy="1.000e-09" iyz="0.0" izz="1.000e-09"/>
     </inertial>
   </link>
@@ -741,7 +686,7 @@
       </geometry>
     </collision>
     <inertial>
-      <mass value="0.01"/>
+      <mass value="0.12"/>
       <inertia ixx="1.000e-09" ixy="0.0" ixz="0.0" iyy="1.000e-09" iyz="0.0" izz="1.000e-09"/>
     </inertial>
   </link>
@@ -830,7 +775,7 @@
       </geometry>
     </collision>
     <inertial>
-      <mass value="0.01"/>
+      <mass value="0.12"/>
       <inertia ixx="1.000e-09" ixy="0.0" ixz="0.0" iyy="1.000e-09" iyz="0.0" izz="1.000e-09"/>
     </inertial>
   </link>
@@ -919,7 +864,7 @@
       </geometry>
     </collision>
     <inertial>
-      <mass value="0.01"/>
+      <mass value="0.12"/>
       <inertia ixx="1.000e-09" ixy="0.0" ixz="0.0" iyy="1.000e-09" iyz="0.0" izz="1.000e-09"/>
     </inertial>
   </link>
