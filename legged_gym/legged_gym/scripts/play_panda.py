@@ -106,7 +106,7 @@ def play(args):
     img_idx = 0
 
 
-    for i in range(10*int(env.max_episode_length)):
+    for i in range(100*int(env.max_episode_length)):
         actions = policy(obs.detach())
         # actions[:, 18:20] = 0
         obs, _, rews, dones, infos = env.step(actions.detach())
