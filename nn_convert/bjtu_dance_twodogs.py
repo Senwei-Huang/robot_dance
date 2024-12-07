@@ -9,16 +9,12 @@ import os
 import threading
 import keyboard
 import random
-# from StateEstimator import *
+from kinematics import *
 from copy import deepcopy
 import yaml
 import ctypes
 
 model_path = "./model/model_1500.jit"
-
-l1 = 0.1
-l2 = 0.34
-l3 = 0.34
 
 
 def s(x):
