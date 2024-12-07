@@ -48,7 +48,7 @@ from .go2.go2_dance_config import GO2DanceCfg_trot, GO2DanceCfg_trotPPO
 from .base.legged_robot_transition import LeggedRobotTrans
 from .go2.go2_dance_trans_config import GO2DanceCfg_trans, GO2DanceCfg_trans_PPO
 from .base.legged_robot_panda import LeggedRobotPanda
-from .base.panda_fixed_gripper import LeggedRobotPandaFixedGripper
+from .base.legged_robot_fixed_gripper import LeggedRobotPandaFixedGripper
 
 from .panda7.panda7_config import panda7BeatCfg, panda7BeatCfgPPO
 from .panda7.panda7_config import panda7TrotCfg, panda7TrotCfgPPO
