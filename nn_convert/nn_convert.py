@@ -12,21 +12,31 @@ from actor_critic import ActorCritic
 from convert_utils import *
 
 
-if __name__ == '__main__':
+def nn_convert():
     device = torch.device('cpu')  # cpu cuda 在cuda设备上测试时PyTorch模型推理结果的精度受设备和库版本的影响较大
-    num_obs = 94
-    num_actions = 12
+    num_obs = 63  # 94 63
+    num_actions = 18  # 12 18
     actor_hidden_dims = [512, 256, 128]
     critic_hidden_dims = [512, 256, 128]
     policy: ActorCritic = ActorCritic(num_obs, num_obs, num_actions, actor_hidden_dims, critic_hidden_dims)
     policy.to(device)
+    policy.eval()  # 模型置为评估模式
+    
+    # load_path = "./model/swing/model_1500"
+    # load_path = "./model/wave/model_6000"
+    
+    # load_path = "./model/swing/model_50"
+    # load_path = "./model/wave/model_6900"
+    load_path = "./model/turnjump/model_7450"
     
     # 加载模型参数
-    load_path = "./model/model_1500.pt"  # 模型路径 "../legged_gym/logs/panda7_fixed_arm_swing/Dec03_18-08-47_"
-    loaded_dict = torch.load(load_path)
+    pt_path =  load_path + ".pt"  # 模型路径 "../legged_gym/logs/panda7_fixed_arm_swing/Dec03_18-08-47_"
+    loaded_dict = torch.load(pt_path)
+    print("loaded_dict: ", loaded_dict.keys())
+    # policy.actor.load_state_dict(loaded_dict['actor_state_dict']) 
     policy.load_state_dict(loaded_dict['model_state_dict'])
-    policy.eval()  # 模型置为评估模式
     actor_model = policy.actor
+    
     # 模型转换
     with torch.no_grad():  # 屏蔽梯度计算
       torch.manual_seed(0)  # 设置随机种子，确保每次运行产生相同随机输入数据
@@ -35,23 +45,23 @@ if __name__ == '__main__':
       outputs = torch.zeros(size=(num_actions,), device=device)
       
       # 转JIT
-      jit_save_path = "./model/model_1500.jit"  # JIT模型保存路径
+      jit_save_path = load_path + ".jit"  # JIT模型保存路径
       pytorch_to_jit(actor_model, inputs, jit_save_path)
       
       # 转ONNX
-      onnx_save_path = "./model/model_1500.onnx"  # ONNX模型保存路径
+      onnx_save_path = load_path + ".onnx"  # ONNX模型保存路径
       pytorch_to_onnx(actor_model, inputs, onnx_save_path)
       
       # 转TVM
-      tvm_output_path = ("./model/model_1500.tar")  # TVM模型保存路径和名称格式
-      tvmc_compile(onnx_save_path, tvm_output_path)
+      tvm_save_path = (load_path + ".tar")  # TVM模型保存路径和名称格式
+      tvmc_compile(onnx_save_path, tvm_save_path)
       
       # 转换结果测试
       N_torch_jit = 0
       N_torch_onnx = 0
       N_torch_tvm = 0
       N_onnx_tvm = 0
-      for i in range(1):
+      for i in range(10):
         torch.manual_seed(i)
         inputs = torch.randn(num_obs, device=device) 
         
@@ -74,4 +84,7 @@ if __name__ == '__main__':
       print("The number of successful matches between PyTorch and ONNX: ", N_torch_onnx)
       print("The number of successful matches between PyTorch and TVM: ", N_torch_tvm)
       print("The number of successful matches between ONNX and TVM: ", N_onnx_tvm)
-    
+      
+
+if __name__ == '__main__':
+    nn_convert()

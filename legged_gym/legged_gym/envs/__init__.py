@@ -47,20 +47,22 @@ from .go2.go2_dance_config import GO2DanceCfg_pace, GO2DanceCfg_pacePPO
 from .go2.go2_dance_config import GO2DanceCfg_trot, GO2DanceCfg_trotPPO
 from .base.legged_robot_transition import LeggedRobotTrans
 from .go2.go2_dance_trans_config import GO2DanceCfg_trans, GO2DanceCfg_trans_PPO
+
 from .base.legged_robot_panda import LeggedRobotPanda
 from .base.legged_robot_fixed_gripper import LeggedRobotPandaFixedGripper
 
 from .panda7.panda7_config import panda7BeatCfg, panda7BeatCfgPPO
 from .panda7.panda7_config import panda7TrotCfg, panda7TrotCfgPPO
-
 from .panda7_fixed_arm.panda7_fixed_arm_config import panda7_fixed_arm_BeatCfg, panda7_fixed_arm_BeatCfgPPO
 from .panda7_fixed_arm.panda7_fixed_arm_config import panda7_fixed_arm_TrotCfg, panda7_fixed_arm_TrotCfgPPO
 from .panda7_fixed_arm.panda7_fixed_arm_config import panda7_fixed_arm_PaceCfg, panda7_fixed_arm_PaceCfgPPO
 from .panda7_fixed_arm.panda7_fixed_arm_config import panda7_fixed_arm_SwingCfg, panda7_fixed_arm_SwingCfgPPO
 from .panda7_fixed_arm.panda7_fixed_arm_config import panda7_fixed_arm_Turn_and_jumpCfg, panda7_fixed_arm_Turn_and_jumpCfgPPO
 from .panda7_fixed_arm.panda7_fixed_arm_config import panda7_fixed_arm_WaveCfg, panda7_fixed_arm_WaveCfgPPO
-
 from .panda7_fixed_gripper.panda7_fixed_gripper import panda7_fixed_gripper_BeatCfg, panda7_fixed_gripper_BeatCfgPPO
+
+from .panda7.panda7_dance_config import Panda7DanceBeatCfg, Panda7DanceBeatCfgPPO
+
 import os
 from legged_gym.utils.task_registry import task_registry
 
@@ -69,6 +71,7 @@ task_registry.register( "anymal_c_flat", Anymal, AnymalCFlatCfg(), AnymalCFlatCf
 task_registry.register( "anymal_b", Anymal, AnymalBRoughCfg(), AnymalBRoughCfgPPO() )
 task_registry.register( "a1", LeggedRobot, A1RoughCfg(), A1RoughCfgPPO() )
 task_registry.register( "cassie", Cassie, CassieRoughCfg(), CassieRoughCfgPPO() )
+
 # GO2
 task_registry.register( "go2_dance_swing", LeggedRobot, GO2DanceCfg_swing(), GO2DanceCfg_swingPPO() )
 task_registry.register( "go2_dance_beat", LeggedRobot, GO2DanceCfg_beat(), GO2DanceCfg_beatPPO() )
@@ -78,9 +81,11 @@ task_registry.register( "go2_dance_wave", LeggedRobot, GO2DanceCfg_wave(), GO2Da
 task_registry.register( "go2_dance_pace", LeggedRobot, GO2DanceCfg_pace(), GO2DanceCfg_pacePPO() )
 task_registry.register( "go2_dance_trot", LeggedRobot, GO2DanceCfg_trot(), GO2DanceCfg_trotPPO() )
 task_registry.register("go2_dance_trans", LeggedRobotTrans, GO2DanceCfg_trans(), GO2DanceCfg_trans_PPO())
+
 # panda7
 task_registry.register( "panda7_beat", LeggedRobotPanda, panda7BeatCfg(), panda7BeatCfgPPO() )
 task_registry.register( "panda7_trot", LeggedRobotPanda, panda7TrotCfg(), panda7TrotCfgPPO() )
+
 # panda7 fixed arm
 task_registry.register( "panda7_fixed_arm_beat", LeggedRobot, panda7_fixed_arm_BeatCfg(), panda7_fixed_arm_BeatCfgPPO() )
 task_registry.register( "panda7_fixed_arm_trot", LeggedRobot, panda7_fixed_arm_TrotCfg(), panda7_fixed_arm_TrotCfgPPO() )
@@ -89,7 +94,6 @@ task_registry.register( "panda7_fixed_arm_swing", LeggedRobot, panda7_fixed_arm_
 task_registry.register( "panda7_fixed_arm_turn_and_jump", LeggedRobot, panda7_fixed_arm_Turn_and_jumpCfg(),
                         panda7_fixed_arm_Turn_and_jumpCfgPPO() )
 task_registry.register( "panda7_fixed_arm_wave", LeggedRobot, panda7_fixed_arm_WaveCfg(), panda7_fixed_arm_WaveCfgPPO() )
+
 # panda7 fixed gripper
-task_registry.register( "panda7_fixed_gripper_beat", LeggedRobotPandaFixedGripper, panda7_fixed_gripper_BeatCfg(), panda7_fixed_gripper_BeatCfgPPO())
-
-
+task_registry.register( "panda7_arm_beat", LeggedRobotPandaFixedGripper, Panda7DanceBeatCfg(), Panda7DanceBeatCfgPPO())
