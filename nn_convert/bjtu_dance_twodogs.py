@@ -290,16 +290,16 @@ class BJTUDance:
         gravity_vec = to_torch([0, 0, -1], dtype=torch.float32, device=self.device).unsqueeze(0)
         projected_gravity = quat_rotate_inverse(base_quat, gravity_vec).squeeze(0)
         
-        print("base_quat: ", base_quat)
-        print("base_lin_vel: ", base_lin_vel)
-        print("base_ang_vel: ", base_ang_vel)
-        print("projected_gravity: ", projected_gravity)
+        # print("base_quat: ", base_quat)
+        # print("base_lin_vel: ", base_lin_vel)
+        # print("base_ang_vel: ", base_ang_vel)
+        # print("projected_gravity: ", projected_gravity)
 
         self.actor_state[0:3] = base_lin_vel * self.scale["lin_vel"]
         self.actor_state[3:6] = base_ang_vel * self.scale["ang_vel"]
         self.actor_state[6:9] = projected_gravity
         
-        print("actor_state[0:9]: ", self.actor_state[0:9])
+        # print("actor_state[0:9]: ", self.actor_state[0:9])
 
         for i in range(4):  # LF RF LH RH
             for j in range(3):
