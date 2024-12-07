@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import torch
 import getsharememory_twodogs
 import numpy as np
@@ -77,9 +78,7 @@ def quat_rotate_inverse(q, v):  # 获取基座z轴在惯性系下的投影矢量
     q_vec = q[:, :3]
     a = v * (2.0 * q_w ** 2 - 1.0).unsqueeze(-1)
     b = torch.cross(q_vec, v, dim=-1) * q_w.unsqueeze(-1) * 2.0
-    c = q_vec * \
-        torch.bmm(q_vec.view(shape[0], 1, 3), v.view(
-            shape[0], 3, 1)).squeeze(-1) * 2.0
+    c = q_vec * torch.bmm(q_vec.view(shape[0], 1, 3), v.view(shape[0], 3, 1)).squeeze(-1) * 2.0
     return a - b + c
 
 
@@ -115,34 +114,26 @@ class BJTUDance:
                       "clip_observations": 100.,
                       "clip_actions": 1.2,
                       "action_scale": 0.25}
-        default_dof_pos = [[0.1, 0.8, -1.5],
-                           [-0.1, 0.8, -1.5], [0.1, 1., -1.5], [-0.1, 1., -1.5]]
-        self.default_dof_pos = to_torch(
-            default_dof_pos, device=self.device, requires_grad=False)  # LF RF LH RH
+        default_dof_pos = [0.1,0.8,-1.5,  -0.1,0.8,-1.5,  0.1,1.,-1.5,  -0.1,1.,-1.5]  # LF RF LH RH
+        self.default_dof_pos = to_torch(default_dof_pos, device=self.device, requires_grad=False)
+        self.dof_pos = torch.zeros(size=(self.num_acts,), device=self.device, requires_grad=False)
+        self.dof_vel = torch.zeros(size=(self.num_acts,), device=self.device, requires_grad=False)
 
-        self.actor_state = torch.zeros(
-            size=(self.num_obs,), device=self.device, requires_grad=False)
-        self.actions = torch.zeros(
-            size=(self.num_acts,), device=self.device, requires_grad=False)
+        self.actor_state = torch.zeros(size=(self.num_obs,), device=self.device, requires_grad=False)
+        self.actions = torch.zeros(size=(self.num_acts,), device=self.device, requires_grad=False)
 
-        self.actor_state2 = torch.zeros(
-            size=(self.num_obs,), device=self.device, requires_grad=False)
-        self.actions2 = torch.zeros(
-            size=(self.num_acts,), device=self.device, requires_grad=False)
+        self.actor_state2 = torch.zeros(size=(self.num_obs,), device=self.device, requires_grad=False)
+        self.actions2 = torch.zeros(size=(self.num_acts,), device=self.device, requires_grad=False)
 
-        self.actions_last = torch.zeros(
-            self.num_acts, device=self.device, requires_grad=False)
-        self.actions_last2 = torch.zeros(
-            self.num_acts, device=self.device, requires_grad=False)
+        self.actions_last = torch.zeros(self.num_acts, device=self.device, requires_grad=False)
+        self.actions_last2 = torch.zeros(self.num_acts, device=self.device, requires_grad=False)
 
         self.p_gains = 150.
         self.d_gains = 2.
-        self.torques = torch.zeros(
-            self.num_acts, device=self.device, requires_grad=False)
-        self.torques2 = torch.zeros(
-            self.num_acts, device=self.device, requires_grad=False)
-        self.torque_limits = to_torch(
-            [max_effort*4], device=self.device, requires_grad=False)
+        self.torques = torch.zeros(self.num_acts, device=self.device, requires_grad=False)
+        self.torques2 = torch.zeros(self.num_acts, device=self.device, requires_grad=False)
+        self.torque_limits = to_torch([max_effort*4], device=self.device, requires_grad=False).squeeze(0)
+        print("self.torque_limits: ", self.torque_limits)
 
         self.joint_qd = np.zeros((4, 3))
         self.joint_qd2 = np.zeros((4, 3))
@@ -170,16 +161,12 @@ class BJTUDance:
 
         self.shmaddr, self.semaphore = getsharememory_twodogs.CreatShareMem()  # change
         self.shareinfo_feed_send = getsharememory_twodogs.ShareInfo()
-        print("sizeof ShareInfo is :", ctypes.sizeof(
-            getsharememory_twodogs.ShareInfo()))
+        print("sizeof ShareInfo is :", ctypes.sizeof(getsharememory_twodogs.ShareInfo()))
         # print("sizeof tsinghua_rec_package is :",ctypes.sizeof(getsharememory_twodogs.ShareInfo().tsinghua_rec_package))
         # print("sizeof tsinghua_send_package is :",ctypes.sizeof(getsharememory_twodogs.ShareInfo().tsinghua_send_package))
-        print("sizeof sensor_package is :", ctypes.sizeof(
-            getsharememory_twodogs.ShareInfo().sensor_package2))
-        print("sizeof servo_package is :", ctypes.sizeof(
-            getsharememory_twodogs.ShareInfo().servo_package2))
-        print("sizeof ocu_package is :", ctypes.sizeof(
-            getsharememory_twodogs.ShareInfo().ocu_package))
+        print("sizeof sensor_package is :", ctypes.sizeof(getsharememory_twodogs.ShareInfo().sensor_package2))
+        print("sizeof servo_package is :", ctypes.sizeof(getsharememory_twodogs.ShareInfo().servo_package2))
+        print("sizeof ocu_package is :", ctypes.sizeof(getsharememory_twodogs.ShareInfo().ocu_package))
 
         self.event = threading.Event()
         self.key_pressed = None
@@ -251,6 +238,11 @@ class BJTUDance:
         # print("model: ", model)
         self.model_swing.eval()
 
+    def _compute_torques(self, actions_scaled):
+        # PD controller
+        torques = self.p_gains * (actions_scaled + self.default_dof_pos - self.dof_pos) - self.d_gains * self.dof_vel
+        return torch.clip(torques, -self.torque_limits, self.torque_limits)
+      
     def PutToDrive(self):
         for i in range(4):
             self.shareinfo_feed_send.servo_package.motor_enable[i] = 1
@@ -258,7 +250,7 @@ class BJTUDance:
             for j in range(3):
                 self.shareinfo_feed_send.servo_package.kp[i][j] = self.p_gains
                 self.shareinfo_feed_send.servo_package.kd[i][j] = self.d_gains
-                self.shareinfo_feed_send.servo_package.joint_q_d[i][j] = self.joint_qd
+                self.shareinfo_feed_send.servo_package.joint_q_d[i][j] = self.joint_qd[i][j]
 
                 self.shareinfo_feed_send.servo_package2.kp[i][j] = self.p_gains
                 self.shareinfo_feed_send.servo_package2.kd[i][j] = self.d_gains
@@ -275,13 +267,77 @@ class BJTUDance:
             self.shareinfo_feed_send.servo_package2.kd_arm[k] = 1
             # print("joint_arm",self.shareinfo_feed.sensor_package2.joint_arm[k])
 
-        getsharememory_twodogs.PutToShareMem(
-            self.shareinfo_feed_send, self.shareinfo_feed_send.ocu_package, self.shmaddr, self.semaphore)
-        getsharememory_twodogs.PutToShareMem(
-            self.shareinfo_feed_send, self.shareinfo_feed_send.servo_package, self.shmaddr, self.semaphore)
-        getsharememory_twodogs.PutToShareMem(
-            self.shareinfo_feed_send, self.shareinfo_feed_send.servo_package2, self.shmaddr, self.semaphore)
+        getsharememory_twodogs.PutToShareMem(self.shareinfo_feed_send, self.shareinfo_feed_send.ocu_package, self.shmaddr, self.semaphore)
+        getsharememory_twodogs.PutToShareMem(self.shareinfo_feed_send, self.shareinfo_feed_send.servo_package, self.shmaddr, self.semaphore)
+        getsharememory_twodogs.PutToShareMem(self.shareinfo_feed_send, self.shareinfo_feed_send.servo_package2, self.shmaddr, self.semaphore)
 
+    def PutToNet(self):
+        x, y, z, w = rpy2quaternion(self.shareinfo_feed.sensor_package.imu_euler[0], 
+                                    self.shareinfo_feed.sensor_package.imu_euler[1], self.shareinfo_feed.sensor_package.imu_euler[2])
+        base_quat = to_torch([x, y, z, w], dtype=torch.float32, device=self.device).unsqueeze(0)
+
+        base_lin_vel_w = [self.shareinfo_feed.sensor_package.body_vel[0],
+                          self.shareinfo_feed.sensor_package.body_vel[0], self.shareinfo_feed.sensor_package.body_vel[0]]
+        base_ang_vel_w = [self.shareinfo_feed.sensor_package.imu_wxyz[0],
+                          self.shareinfo_feed.sensor_package.imu_wxyz[0], self.shareinfo_feed.sensor_package.imu_wxyz[0]]
+
+        base_lin_vel_w = to_torch(base_lin_vel_w, dtype=torch.float32, device=self.device).unsqueeze(0)
+        base_ang_vel_w = to_torch(base_ang_vel_w, dtype=torch.float32, device=self.device).unsqueeze(0)
+
+        base_lin_vel = quat_rotate_inverse(base_quat, base_lin_vel_w).squeeze(0)
+        base_ang_vel = quat_rotate_inverse(base_quat, base_ang_vel_w).squeeze(0)
+
+        gravity_vec = to_torch([0, 0, -1], dtype=torch.float32, device=self.device).unsqueeze(0)
+        projected_gravity = quat_rotate_inverse(base_quat, gravity_vec).squeeze(0)
+        
+        print("base_quat: ", base_quat)
+        print("base_lin_vel: ", base_lin_vel)
+        print("base_ang_vel: ", base_ang_vel)
+        print("projected_gravity: ", projected_gravity)
+
+        self.actor_state[0:3] = base_lin_vel * self.scale["lin_vel"]
+        self.actor_state[3:6] = base_ang_vel * self.scale["ang_vel"]
+        self.actor_state[6:9] = projected_gravity
+        
+        print("actor_state[0:9]: ", self.actor_state[0:9])
+
+        for i in range(4):  # LF RF LH RH
+            for j in range(3):
+                self.dof_pos[i*3+j] = self.shareinfo_feed.sensor_package.joint_q[reindex_feet1[i]][j]
+                self.dof_vel[i*3+j] = self.shareinfo_feed.sensor_package.joint_qd[reindex_feet1[i]][j]
+                self.actor_state[9 + i*3 + j] = (self.dof_pos[i*3+j] - self.default_dof_pos[i*3+j]) * self.scale["dof_pos"]
+                self.actor_state[21 + i*3 + j] = self.dof_vel[i*3+j] * self.scale["dof_vel"]
+
+        for i in range(12):
+            self.actor_state[33 + i] = self.actions[i]
+
+    def PutToNet2(self):
+        x2, y2, z2, w2 = rpy2quaternion(self.shareinfo_feed.sensor_package2.imu_euler[0], 
+                                        self.shareinfo_feed.sensor_package2.imu_euler[1], self.shareinfo_feed.sensor_package2.imu_euler[2])
+        quaternion2 = [x2, y2, z2, w2]
+        quat_tensor2 = torch.tensor([quaternion2], dtype=torch.float32, device=self.device)
+        vector2 = torch.tensor([[0, 0, -1]], dtype=torch.float32, device=self.device)
+
+        self.actor_state2[0:3] = quat_rotate_inverse(
+            quat_tensor2, vector2).unsqueeze(1)
+
+        for i in range(4):
+            for j in range(3):
+                self.actor_state2[3+i*3 + j] = (math.sin(self.shareinfo_feed.sensor_package2.joint_q[reindex_feet1[i]][j]))
+                self.actor_state2[15+i*3 + j] = (math.cos(self.shareinfo_feed.sensor_package2.joint_q[reindex_feet1[i]][j]))
+        for j in range(3):
+            self.actor_state2[27 + j] = 0.25 * (self.shareinfo_feed.sensor_package2.imu_wxyz[j])
+        for i in range(12):
+            self.actor_state2[30 + i] = self.actions_last2[i]
+
+        self.actor_state2[42] = self.stand_height
+        self.actor_state2[43] = (self.shareinfo_feed.ocu_package.x_des_vel * 0.25)
+        self.actor_state2[44] = (0 * 0.25)
+        self.actor_state2[45] = (self.shareinfo_feed.ocu_package.yaw_turn_dot * 0.05)
+        self.actor_state2[46] = 1
+        self.actor_state2[47] = 1
+        self.actor_state2[48:] = 0
+        
     def inference_(self):
         last_vel = 0
         last_yaw = 0
@@ -304,10 +360,8 @@ class BJTUDance:
             self.update_ontology_sense_buffer()
             self.update_ontology_sense_buffer2()
 
-            self.ontology_sense_matrix_tem = self.ontology_sense_matrix.view(
-                -1)
-            self.ontology_sense_matrix_tem2 = self.ontology_sense_matrix2.view(
-                -1)
+            self.ontology_sense_matrix_tem = self.ontology_sense_matrix.view(-1)
+            self.ontology_sense_matrix_tem2 = self.ontology_sense_matrix2.view(-1)
 
             with torch.no_grad():
                 actions = self.model_swing(self.actor_state)
@@ -330,10 +384,8 @@ class BJTUDance:
 
             for i in range(4):
                 for j in range(3):
-                    self.joint_qd[reindex_feet1[i]][j] = self.actions_scaled.tolist()[
-                        i*3+j]
-                    self.joint_qd2[reindex_feet1[i]][j] = self.actions2_scaled.tolist()[
-                        i*3+j]
+                    self.joint_qd[reindex_feet1[i]][j] = self.actions_scaled.tolist()[i*3+j]
+                    self.joint_qd2[reindex_feet1[i]][j] = self.actions2_scaled.tolist()[i*3+j]
 
             self.PutToDrive()
 
@@ -344,94 +396,13 @@ class BJTUDance:
             if last_time < 0.02:
                 time.sleep(0.02 - last_time)  # 保证50Hz频率
 
-    def PutToNet(self):
-        x, y, z, w = rpy2quaternion(
-            self.shareinfo_feed.sensor_package.imu_euler[0], self.shareinfo_feed.sensor_package.imu_euler[1], self.shareinfo_feed.sensor_package.imu_euler[2])
-        base_quat = to_torch(
-            [x, y, z, w], dtype=torch.float32, device=self.device)
-
-        base_lin_vel_w = [self.shareinfo_feed.sensor_package.body_vel[0],
-                          self.shareinfo_feed.sensor_package.body_vel[0], self.shareinfo_feed.sensor_package.body_vel[0]]
-        base_ang_vel_w = [self.shareinfo_feed.sensor_package.imu_wxyz[0],
-                          self.shareinfo_feed.sensor_package.imu_wxyz[0], self.shareinfo_feed.sensor_package.imu_wxyz[0]]
-
-        base_lin_vel_w = to_torch(
-            base_lin_vel_w, dtype=torch.float32, device=self.device)
-        base_ang_vel_w = to_torch(
-            base_ang_vel_w, dtype=torch.float32, device=self.device)
-
-        base_lin_vel = quat_rotate_inverse(base_quat, base_lin_vel_w)
-        base_ang_vel = quat_rotate_inverse(base_quat, base_ang_vel_w)
-
-        gravity_vec = to_torch(
-            [0, 0, -1], dtype=torch.float32, device=self.device)
-        projected_gravity = quat_rotate_inverse(base_quat, gravity_vec)
-
-        self.actor_state[0:3] = base_lin_vel * self.scale["lin_vel"]
-        self.actor_state[3:6] = base_ang_vel * self.scale["ang_vel"]
-        self.actor_state[6:9] = projected_gravity
-
-        for i in range(4):  # LF RF LH RH
-            for j in range(3):
-                self.dof_pos = self.shareinfo_feed.sensor_package.joint_q[reindex_feet1[i]][j]
-                self.dof_vel = self.shareinfo_feed.sensor_package.joint_qd[reindex_feet1[i]][j]
-                self.actor_state[9 + i*3 + j] = (self.dof_pos -
-                                                 self.default_dof_pos) * self.scale["dof_pos"]
-                self.actor_state[21 + i*3 +
-                                 j] = self.dof_vel * self.scale["dof_vel"]
-
-        for i in range(12):
-            self.actor_state[33 + i] = self.actions[i]
-
-    def PutToNet2(self):
-        x2, y2, z2, w2 = rpy2quaternion(
-            self.shareinfo_feed.sensor_package2.imu_euler[0], self.shareinfo_feed.sensor_package2.imu_euler[1], self.shareinfo_feed.sensor_package2.imu_euler[2])
-        quaternion2 = [x2, y2, z2, w2]
-        quat_tensor2 = torch.tensor(
-            [quaternion2], dtype=torch.float32, device=self.device)
-        vector2 = torch.tensor(
-            [[0, 0, -1]], dtype=torch.float32, device=self.device)
-
-        self.actor_state2[0:3] = quat_rotate_inverse(
-            quat_tensor2, vector2).unsqueeze(1)
-
-        for i in range(4):
-            for j in range(3):
-                self.actor_state2[3+i*3 + j] = (
-                    math.sin(self.shareinfo_feed.sensor_package2.joint_q[reindex_feet1[i]][j]))
-                self.actor_state2[15+i*3 + j] = (
-                    math.cos(self.shareinfo_feed.sensor_package2.joint_q[reindex_feet1[i]][j]))
-        for j in range(3):
-            self.actor_state2[27 + j] = 0.25 * \
-                (self.shareinfo_feed.sensor_package2.imu_wxyz[j])
-        for i in range(12):
-            self.actor_state2[30 + i] = self.actions_last2[i]
-
-        self.actor_state2[42] = self.stand_height
-        self.actor_state2[43] = (
-            self.shareinfo_feed.ocu_package.x_des_vel * 0.25)
-        self.actor_state2[44] = (0 * 0.25)
-        self.actor_state2[45] = (
-            self.shareinfo_feed.ocu_package.yaw_turn_dot * 0.05)
-        self.actor_state2[46] = 1
-        self.actor_state2[47] = 1
-        self.actor_state2[48:] = 0
-
-    def _compute_torques(self, actions_scaled):
-        # PD controller
-        torques = self.p_gains * \
-            (actions_scaled + self.default_dof_pos -
-             self.dof_pos) - self.d_gains * self.dof_vel
-        return torch.clip(torques, -self.torque_limits, self.torque_limits)
-
 
 if __name__ == "__main__":
     # for key,weights in torch.load('./70HRH/model_5600.pt').items():
     #     print(key,weights.shape)
 
     bjtudance = BJTUDance()
-    bjtudance.keyboard_thread = threading.Thread(
-        target=bjtudance.listen_keyboard)
+    bjtudance.keyboard_thread = threading.Thread(target=bjtudance.listen_keyboard)
     bjtudance.keyboard_thread.start()
     while (True):
         bjtudance.inference_()
