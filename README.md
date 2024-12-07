@@ -9,3 +9,8 @@ conda install numpy=1.23
 pip install setuptools==59.5.0
 pip install protobuf==3.20.*
 ```
+
+Sim2Sim运行
+```bash
+sudo /home/ubuntn/anaconda3/envs/dance/bin/python bjtu_dance_twodogs.py
+```
