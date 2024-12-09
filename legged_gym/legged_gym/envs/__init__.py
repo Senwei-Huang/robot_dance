@@ -93,3 +93,4 @@ task_registry.register( "go2_dance_trot", LeggedRobot, GO2DanceCfg_trot(), GO2Da
 
 # panda7 fixed gripper
 task_registry.register( "panda7_arm_beat", LeggedRobot, Panda7DanceBeatCfg(), Panda7DanceBeatCfgPPO())
+task_registry.register( "panda7_arm_swing", LeggedRobot, Panda7DanceSwingCfg(), Panda7DanceSwingCfgPPO())
