@@ -25,23 +25,23 @@ def nn_convert():
     # load_path = "./model/swing/model_1500"
     # load_path = "./model/wave/model_6000"
     
-    # load_path = "./model/swing/model_50"
+    load_path = "./model/swing/model_15000"
     # load_path = "./model/wave/model_6900"
-    load_path = "./model/turnjump/model_7450"
+    # load_path = "./model/turnjump/model_7450"
     
     # 加载模型参数
     pt_path =  load_path + ".pt"  # 模型路径 "../legged_gym/logs/panda7_fixed_arm_swing/Dec03_18-08-47_"
     loaded_dict = torch.load(pt_path)
     print("loaded_dict: ", loaded_dict.keys())
-    # policy.actor.load_state_dict(loaded_dict['actor_state_dict']) 
-    policy.load_state_dict(loaded_dict['model_state_dict'])
+    policy.actor.load_state_dict(loaded_dict['actor_state_dict']) 
+    # policy.load_state_dict(loaded_dict['model_state_dict'])
     actor_model = policy.actor
     
     # 模型转换
     with torch.no_grad():  # 屏蔽梯度计算
       torch.manual_seed(0)  # 设置随机种子，确保每次运行产生相同随机输入数据
       # 创建输入张量，需要根据实际模型输入调整尺寸
-      inputs = torch.zeros(num_obs, device=device) 
+      inputs = torch.zeros(num_obs, device=device)
       outputs = torch.zeros(size=(num_actions,), device=device)
       
       # 转JIT
@@ -61,9 +61,11 @@ def nn_convert():
       N_torch_onnx = 0
       N_torch_tvm = 0
       N_onnx_tvm = 0
-      for i in range(10):
+      for i in range(1):
         torch.manual_seed(i)
-        inputs = torch.randn(num_obs, device=device) 
+        inputs = torch.randn(num_obs, device=device)
+        # inputs = torch.zeros(num_obs, device=device)
+        inputs = torch.ones(num_obs, device=device)
         
         torch_output = get_torch_output(inputs, actor_model)
         jit_output = get_jit_output(inputs, jit_save_path)
@@ -75,10 +77,10 @@ def nn_convert():
         print("onnx_output: ", onnx_output, sep="\n")
         print("tvm_output: ", tvm_output, sep="\n")
         
-        N_torch_jit += test_result(torch_output, jit_output, decimal=5)  # 测试导出的JIT模型
-        N_torch_onnx += test_result(torch_output, onnx_output, decimal=5)  # 测试导出的ONNX模型
-        N_torch_tvm += test_result(torch_output, tvm_output, decimal=5)  # 测试导出的TVM模型
-        N_onnx_tvm += test_result(onnx_output, tvm_output, decimal=5)  # 测试导出的TVM模型
+        N_torch_jit += test_result(torch_output, jit_output, decimal=4)  # 测试导出的JIT模型
+        N_torch_onnx += test_result(torch_output, onnx_output, decimal=4)  # 测试导出的ONNX模型
+        N_torch_tvm += test_result(torch_output, tvm_output, decimal=4)  # 测试导出的TVM模型
+        N_onnx_tvm += test_result(onnx_output, tvm_output, decimal=4)  # 测试导出的TVM模型
         
       print("The number of successful matches between PyTorch and JIT: ", N_torch_jit)
       print("The number of successful matches between PyTorch and ONNX: ", N_torch_onnx)

@@ -47,8 +47,9 @@ from legged_gym.utils.terrain import Terrain
 from legged_gym.utils.math import quat_apply_yaw, wrap_to_pi, torch_rand_sqrt_float
 from legged_gym.utils.helpers import class_to_dict
 from .legged_robot_config import LeggedRobotCfg
-from legged_gym.motion_loader.motion_loader import motionLoader
 
+from legged_gym.motion_loader.motion_loader import motionLoader
+from legged_gym.motion_loader.motion_loader_panda_fixed_gripper import motionLoaderPandaFixedGripper
 
 class LeggedRobot(BaseTask):
     def __init__(self, cfg: LeggedRobotCfg, sim_params, physics_engine, sim_device, headless):
@@ -78,7 +79,9 @@ class LeggedRobot(BaseTask):
         self._prepare_reward_function()
         self.init_done = True
         # 加载动作数据
-        self.motion_loader = motionLoader(motion_files=self.cfg.env.motion_files, device=self.device,
+        # self.motion_loader = motionLoader(motion_files=self.cfg.env.motion_files, device=self.device,
+                                          # time_between_frames=self.dt, frame_duration=self.cfg.env.frame_duration)
+        self.motion_loader = motionLoaderPandaFixedGripper(motion_files=self.cfg.env.motion_files, device=self.device,
                                           time_between_frames=self.dt, frame_duration=self.cfg.env.frame_duration)
         self.max_episode_length_s = self.motion_loader.trajectory_lens[0]
         self.max_episode_length = np.ceil(self.max_episode_length_s / self.dt)
@@ -184,7 +187,10 @@ class LeggedRobot(BaseTask):
             self._reset_root_states(env_ids)
             self._reset_dofs(env_ids)
         else:
-            frames = self.motion_loader.get_full_frame_batch(len(env_ids))
+            traj_idxs = self.motion_loader.weighted_traj_idx_sample_batch(len(env_ids))
+            init_times = np.zeros(len(env_ids), dtype=int)
+            # frames = self.motion_loader.get_full_frame_batch(len(env_ids))
+            frames = self.motion_loader.get_full_frame_at_time_batch(traj_idxs, init_times)
             self._reset_dofs_amp(env_ids, frames)
             self._reset_root_states_amp(env_ids, frames)
 
@@ -221,8 +227,16 @@ class LeggedRobot(BaseTask):
             env_ids (List[int]): Environemnt ids
             frames: AMP frames to initialize motion with
         """
-        self.dof_pos[env_ids] = self.motion_loader.get_joint_pose_batch(frames)
-        self.dof_vel[env_ids] = self.motion_loader.get_joint_vel_batch(frames)
+        # 无机械臂
+        # self.dof_pos[env_ids] = self.motion_loader.get_joint_pose_batch(frames)
+        # self.dof_vel[env_ids] = self.motion_loader.get_joint_vel_batch(frames)
+        
+        # 带机械臂
+        self.dof_pos[env_ids] = torch.cat((self.motion_loader.get_joint_pose_batch(frames),
+                                          self.motion_loader.get_arm_joint_pos_batch(frames)), dim=1)
+        self.dof_vel[env_ids] = torch.cat((self.motion_loader.get_joint_vel_batch(frames),
+                                           self.motion_loader.get_arm_joint_vel_batch(frames)), dim=1)
+        
         env_ids_int32 = env_ids.to(dtype=torch.int32)
         self.gym.set_dof_state_tensor_indexed(self.sim,
                                               gymtorch.unwrap_tensor(self.dof_state),
@@ -292,7 +306,7 @@ class LeggedRobot(BaseTask):
         # add noise if needed
         if self.add_noise:
             self.obs_buf += (2 * torch.rand_like(self.obs_buf) - 1) * self.noise_scale_vec
-        # print(self.obs_buf) #use in debug
+        # print(self.obs_buf) # use in debug
 
     def create_sim(self):
         """ Creates simulation, terrain and evironments
@@ -778,6 +792,7 @@ class LeggedRobot(BaseTask):
         self.num_bodies = len(body_names)
         self.num_dofs = len(self.dof_names)
         feet_names = [s for s in body_names if self.cfg.asset.foot_name in s]
+        arm_names = [s for s in body_names if self.cfg.asset.arm_name in s]
         penalized_contact_names = []
         for name in self.cfg.asset.penalize_contacts_on:
             penalized_contact_names.extend([s for s in body_names if name in s])
@@ -818,6 +833,10 @@ class LeggedRobot(BaseTask):
         for i in range(len(feet_names)):
             self.feet_indices[i] = self.gym.find_actor_rigid_body_handle(self.envs[0], self.actor_handles[0],
                                                                          feet_names[i])
+
+        self.arm_indices = torch.zeros(len(arm_names), dtype=torch.long, device=self.device, requires_grad=False)
+        for i in range(len(arm_names)):
+            self.arm_indices[i] = self.gym.find_actor_rigid_body_handle(self.envs[0], self.actor_handles[0], arm_names[i])
 
         self.penalised_contact_indices = torch.zeros(len(penalized_contact_names), dtype=torch.long, device=self.device,
                                                      requires_grad=False)
@@ -1107,9 +1126,46 @@ class LeggedRobot(BaseTask):
     def _reward_track_dof_pos(self):
         return torch.exp(-5 * torch.sum(torch.square(self.frames[:, 25:37] - self.dof_pos[:, :12]), dim=1))
 
+    def _reward_track_arm_dof_pos(self):
+        if 0:
+            print(torch.sum(torch.square(self.frames[:, 56:64] - self.dof_pos[:, 12:20]), dim=1))
+            print(torch.exp(-0.1 * torch.sum(torch.square(self.frames[:, 56:62] - self.dof_pos[:, 12:18]), dim=1)))
+            print(50*'#')
+        return torch.exp(-0.1 * torch.sum(torch.square(self.frames[:, self.motion_loader.ARM_JOINT_POS_START_IDX:
+                                                                      self.motion_loader.ARM_JOINT_POS_END_IDX] -
+                                                       self.dof_pos[:, 12:18]), dim=1))
+    
+    def _reward_track_griper_dof_pos(self):
+        if 0:
+            # print(self.dof_pos[:, 18:20])
+            # print(torch.sum(torch.square(self.frames[:, 62:64] - self.dof_pos[:, 18:20]), dim=1))
+            print(torch.exp(-1000 * torch.sum(torch.square(self.frames[:, 62:64] - self.dof_pos[:, 18:20]), dim=1)))
+            print(50*'_')
+        return torch.exp(-1000 * torch.sum(torch.square(self.frames[:, 62:64] - self.dof_pos[:, 18:20]), dim=1))
+          
     def _reward_track_dof_vel(self):
         return torch.exp(-0.1 * torch.sum(torch.square(self.frames[:, 37:49] - self.dof_vel[:, :12]), dim=1))
 
+    def _reward_track_arm_dof_vel(self):
+        return torch.exp(-1 * torch.sum(torch.square(self.frames[:, self.motion_loader.ARM_JOINT_VEL_START_IDX:
+                                                                    self.motion_loader.ARM_JOINT_VEL_END_IDX] -
+                                                     self.dof_vel[:, 12:18]), dim=1))
+    
+    def _reward_track_arm_pos(self):
+        arm_pos = self.rb_states[:, self.arm_indices, 0:3].view(self.num_envs, -1) - self.base_pos
+        if 0:
+            print(f"arm pos ref is: {self.frames[:, 49:52]}")
+            print(f"arm pos is: {arm_pos}")
+        temp = torch.exp(-100 * torch.sum(torch.square(self.frames[:, 49:52] - arm_pos), dim=1))
+        return temp
+
+    def _reward_track_arm_rot(self):
+        arm_rot = self.rb_states[:, self.arm_indices, 3:7].view(self.num_envs, -1)
+        if self.cfg.env.debug:
+            print(f"arm rot ref is : {self.frames[:, 52:56]}")
+            print(f"arm rot is : {arm_rot}")
+        return torch.exp(-10 * torch.sum(torch.square(self.frames[:, 52:56] - arm_rot), dim=1))
+          
     def _reward_jump(self):
         ref_jump_buf = self.frames[:, 15] > -self.frames[:, 2] #足端位置是相对
         # sim_jump_buf = self.rb_states[:, self.feet_indices, 2].view(self.num_envs,-1) > 0.04   # for go2
@@ -1120,3 +1176,14 @@ class LeggedRobot(BaseTask):
 
     def _reward_original_xy(self):
         return torch.exp(-10*torch.sum(torch.square(self.base_pos[:, :2] - self.origin_xy[:, :2]), dim=1))
+
+    def _reward_survival(self):
+        "如果这个回合存活，给一个奖励"
+        survival_buf = torch.any(torch.norm(self.contact_forces[:, self.termination_contact_indices, :], dim=-1) < 1.,
+                                 dim=1)
+        # print(survival_buf)
+        return survival_buf
+
+    def _reward_test(self):
+        test_buf = torch.ones_like(self.episode_length_buf)
+        return test_buf

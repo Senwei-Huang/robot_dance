@@ -141,7 +141,7 @@ class Panda7DnaceCfg(LeggedRobotCfg):
         file = '{LEGGED_GYM_ROOT_DIR}/resources/robots/panda7_arm/urdf/panda7_arm.urdf'
         name = "panda7_arm"
         foot_name = "FOOT"
-        arm_name = "arm_link6"
+        arm_name = "arm_link"
         penalize_contacts_on = ["thigh", "calf", "base", "arm_link0", "arm_link1", "arm_link2",
                                 "arm_link3", "arm_link4", "arm_link5", "arm_link6"]
         terminate_after_contacts_on = ["base"]
@@ -156,8 +156,8 @@ class Panda7DnaceCfg(LeggedRobotCfg):
         motion_files = None
         frame_duration = 1 / 50
         RSI = 1  # 参考状态初始化
-        num_actions = 18
-        num_observations = 131
+        num_observations = 63  # 94
+        num_actions = 18  # 12
         # debug = True
 
 
@@ -203,11 +203,56 @@ class Panda7DanceBeatCfg(Panda7DnaceCfg):
             track_arm_pos = 0
             track_arm_rot = 0
 
-    class env(Panda7DanceCfgPPO.env):
+    class env(Panda7DnaceCfg.env):
         motion_files = "opti_traj/output_panda_fixed_gripper/panda_beat.txt"
 
 
 class Panda7DanceBeatCfgPPO(Panda7DanceCfgPPO):
     class runner(Panda7DanceCfgPPO.runner):
         experiment_name = ('panda7_arm_fixed_gripper_dance_beat')
+        # resume_path = 'legged_gym/logs/panda7_beat/Dec01_20-31-14_/model_1500.pt'
+
+
+# *********************** Panda7_arm fixed gripper Dance Swing *******************************************
+class Panda7DanceSwingCfg(Panda7DnaceCfg):
+    class asset(Panda7DnaceCfg.asset):
+        file = '{LEGGED_GYM_ROOT_DIR}/resources/robots/panda7_arm/urdf/panda7_arm_fixed_gripper.urdf'
+
+    class rewards(Panda7DnaceCfg.rewards):
+        class scales(Panda7DnaceCfg.rewards.scales):
+            # regularization reward
+            torques = -0.00001
+            dof_pos_limits = -10.0
+            action_rate = -0.1
+            collision = -5.
+            lin_vel_z = -1.0
+            feet_air_time = 0
+            survival = 0
+            test = 0
+            # 模仿奖励
+            tracking_lin_vel = 0
+            tracking_ang_vel = 0
+            track_root_pos = 0
+            track_root_height = 0.5
+            track_root_rot = 2.
+            orientation = 0.
+            track_lin_vel_ref = 1
+            track_ang_vel_ref = 1
+            track_dof_pos = 1
+            track_dof_vel = 1
+            track_toe_pos = 10
+            # 机械臂
+            track_arm_dof_pos = 1
+            track_griper_dof_pos = 0
+            track_arm_dof_vel = 2
+            track_arm_pos = 0
+            track_arm_rot = 0
+
+    class env(Panda7DnaceCfg.env):
+        motion_files = "opti_traj/output_panda_fixed_gripper/panda_swing.txt"
+
+
+class Panda7DanceSwingCfgPPO(Panda7DanceCfgPPO):
+    class runner(Panda7DanceCfgPPO.runner):
+        experiment_name = ('panda7_arm_fixed_gripper_dance_swing')
         # resume_path = 'legged_gym/logs/panda7_beat/Dec01_20-31-14_/model_1500.pt'

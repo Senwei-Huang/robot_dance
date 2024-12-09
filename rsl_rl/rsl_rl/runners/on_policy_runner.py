@@ -195,7 +195,7 @@ class OnPolicyRunner:
                     # 已解决读取数据索引越界的问题
                     obs, privileged_obs, rewards, dones, infos = self.env.step(actions, dance_actions)
 
-                    # save_obs = torch.cat((save_obs, obs), dim=0) #used in debug
+                    # save_obs = torch.cat((save_obs, obs), dim=0) # used in debug
                     critic_obs = privileged_obs if privileged_obs is not None else obs
                     obs, critic_obs, rewards, dones = obs.to(self.device), critic_obs.to(self.device), rewards.to(
                         self.device), dones.to(self.device)
@@ -228,7 +228,7 @@ class OnPolicyRunner:
             if it % self.save_interval == 0:
                 self.save(os.path.join(self.log_dir, 'model_{}.pt'.format(it)))
             ep_infos.clear()
-            # np.savetxt("trans_obs.txt", save_obs.to("cpu").numpy(), delimiter=",") #used in debug
+            # np.savetxt("trans_obs.txt", save_obs.to("cpu").numpy(), delimiter=",") # used in debug
 
         self.current_learning_iteration += num_learning_iterations
         self.save(os.path.join(self.log_dir, 'model_{}.pt'.format(self.current_learning_iteration)))
@@ -310,7 +310,7 @@ class OnPolicyRunner:
     def save(self, path, infos=None):
         torch.save({
             'model_state_dict': self.alg.actor_critic.state_dict(),
-            'actor_state_dict': self.alg.actor_criti.actor.state_dict(),
+            'actor_state_dict': self.alg.actor_critic.actor.state_dict(),
             'optimizer_state_dict': self.alg.optimizer.state_dict(),
             'iter': self.current_learning_iteration,
             'infos': infos,

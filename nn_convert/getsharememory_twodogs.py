@@ -30,6 +30,7 @@ class Sensor_Package(ctypes.Structure):
         ('joint_qd', ctypes.c_float*3*4),
         ('joint_tau', ctypes.c_float*3*4),
         ('joint_arm', ctypes.c_float*8),
+        ('joint_arm_dq', ctypes.c_float*8),
         ('motor_output', ctypes.c_float*3*4),
         ('imu_euler', ctypes.c_float*3),
         ('imu_wxyz', ctypes.c_float *3), 
