@@ -22,7 +22,7 @@
 5. Install legged_gym
    - `cd ../legged_gym && pip install -e .`
 
-### 补充安装：
+### 训练补充安装：
 
 ```bash
 conda install numpy=1.23
@@ -33,7 +33,11 @@ pip install protobuf==3.20.*
 pip install attrs cloudpickle decorator ml_dtypes packaging psutil scipy tornado
 pip install scipy
 ```
-
+Sim2Sim安装
+```bash
+pip install sysv_ipc
+pip install keyboard
+ ```
 Sim2Sim运行
 ```bash
 sudo /home/ubuntn/anaconda3/envs/dance/bin/python bjtu_dance_twodogs.py
