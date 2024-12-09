@@ -1,8 +1,8 @@
 # 训练机器人跳舞
 
 ### 参考：
-- https://github.com/unitreerobotics/unitree_rl_gym
 - https://github.com/leggedrobotics/legged_gym
+- https://github.com/unitreerobotics/unitree_rl_gym
 - https://github.com/inspirai/MetalHead
 - https://github.com/Alescontrela/AMP_for_hardware
 
