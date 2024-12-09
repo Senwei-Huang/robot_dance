@@ -58,6 +58,7 @@ from .go2.go2_dance_trans_config import GO2DanceCfg_trans, GO2DanceCfg_trans_PPO
 # from .panda7_fixed_gripper.panda7_fixed_gripper import panda7_fixed_gripper_BeatCfg, panda7_fixed_gripper_BeatCfgPPO
 
 from .panda7.panda7_dance_config import Panda7DanceBeatCfg, Panda7DanceBeatCfgPPO
+from .panda7.panda7_dance_config import Panda7DanceSwingCfg, Panda7DanceSwingCfgPPO
 
 import os
 from legged_gym.utils.task_registry import task_registry
