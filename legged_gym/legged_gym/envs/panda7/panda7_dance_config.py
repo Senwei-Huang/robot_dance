@@ -38,7 +38,7 @@ class Panda7DnaceCfg(LeggedRobotCfg):
                      'joint7': 10., 'joint8': 10.}  # [N*m/rad]
         damping = {'hip': 2.0, 'thigh': 2.0, 'calf': 2.0,
                    'joint1': 2., 'joint2': 2., 'joint3': 2.,  # 12. 12. 12.
-                   'joint4': 0.8, 'joint5': 1., 'joint6': 1.,  # 0.8 1. 1.
+                   'joint4': 0.8, 'joint5': 1., 'joint6': 1.,  # 0.8 1. 1.   0.1 1. 1.
                    'joint7': 1., 'joint8': 1.}  # [N*m*s/rad]
         action_scale = 0.25  # action scale: target angle = actionScale * action + defaultAngle
 
@@ -144,8 +144,8 @@ class Panda7DanceSwingCfg(Panda7DnaceCfg):
             # 机械臂
             track_arm_dof_pos = 1
             track_arm_dof_vel = 2
-            track_arm_end_pos = 0
-            track_arm_end_rot = 0
+            track_arm_end_pos = 10.
+            track_arm_end_rot = 10.
             track_griper_dof_pos = 0
 
     class env(Panda7DnaceCfg.env):
