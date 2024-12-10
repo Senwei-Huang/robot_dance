@@ -33,11 +33,11 @@ class Panda7DnaceCfg(LeggedRobotCfg):
     class control(LeggedRobotCfg.control):
         # PD Drive parameters:
         stiffness = {'hip': 150., 'thigh': 150., 'calf': 150.,
-                     'joint1': 150., 'joint2': 600., 'joint3': 150,  # 150 150 150
+                     'joint1': 150., 'joint2': 150., 'joint3': 150,  # 150 150 150  150 600 150
                      'joint4': 20., 'joint5': 15., 'joint6': 10.,
                      'joint7': 10., 'joint8': 10.}  # [N*m/rad]
         damping = {'hip': 2.0, 'thigh': 2.0, 'calf': 2.0,
-                   'joint1': 2., 'joint2': 2., 'joint3': 2.,  # 12. 12. 12.
+                   'joint1': 12., 'joint2': 12., 'joint3': 12.,  # 12. 12. 12.  2 2 2
                    'joint4': 0.8, 'joint5': 1., 'joint6': 1.,  # 0.8 1. 1.   0.1 1. 1.
                    'joint7': 1., 'joint8': 1.}  # [N*m*s/rad]
         action_scale = 0.25  # action scale: target angle = actionScale * action + defaultAngle
@@ -121,7 +121,6 @@ class Panda7DanceBeatCfg(Panda7DnaceCfg):
 class Panda7DanceBeatCfgPPO(Panda7DanceCfgPPO):
     class runner(Panda7DanceCfgPPO.runner):
         experiment_name = ('panda7_arm_fixed_gripper_dance_beat')
-        # resume_path = 'legged_gym/logs/panda7_beat/Dec01_20-31-14_/model_1500.pt'
 
 
 # *********************** Panda7_arm fixed gripper Dance Swing *******************************************
@@ -155,4 +154,37 @@ class Panda7DanceSwingCfg(Panda7DnaceCfg):
 class Panda7DanceSwingCfgPPO(Panda7DanceCfgPPO):
     class runner(Panda7DanceCfgPPO.runner):
         experiment_name = ('panda7_arm_fixed_gripper_dance_swing')
-        # resume_path = 'legged_gym/logs/panda7_beat/Dec01_20-31-14_/model_1500.pt'
+        
+
+class Panda7DanceTurnJumpCfg(Panda7DnaceCfg):
+    class rewards(Panda7DnaceCfg.rewards):
+        class scales(Panda7DnaceCfg.rewards.scales):
+            lin_vel_z = -0
+            survival = 1
+            # 模仿奖励
+            tracking_lin_vel = 0
+            tracking_ang_vel = 0
+            track_root_pos = 1
+            track_root_height = 0
+            track_root_rot = 1
+            track_lin_vel_ref = 0
+            track_ang_vel_ref = 0
+            track_dof_pos = 0
+            track_dof_vel = 0
+            track_toe_pos = 10
+            # jump reward
+            jump = 5
+            # 机械臂
+            track_arm_dof_pos = 1
+            track_griper_dof_pos = 0
+            track_arm_dof_vel = 0
+            track_arm_pos = 0
+            track_arm_rot = 0
+
+    class env(Panda7DnaceCfg.env):
+        motion_files = "opti_traj/output_panda_fixed_gripper/panda_turn_and_jump.txt"
+
+
+class Panda7DanceTurnJumpCfgPPO(Panda7DanceCfgPPO):
+    class runner(Panda7DanceCfgPPO.runner):
+        experiment_name = 'panda7_fixed_gripper_turn_and_jump'
