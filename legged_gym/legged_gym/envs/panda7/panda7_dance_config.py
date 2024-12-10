@@ -141,7 +141,7 @@ class Panda7DnaceCfg(LeggedRobotCfg):
         frame_duration = 1 / 50
         RSI = 1  # 参考状态初始化
         num_observations = 60  # 94 63
-        num_privileged_obs = 60
+        num_privileged_obs = 132
         num_actions = 18  # 12
         # debug = True
 
