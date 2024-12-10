@@ -127,8 +127,10 @@ class LeggedRobot(BaseTask):
         Args:
             actions (torch.Tensor): Tensor of shape (num_envs, num_actions_per_env)
         """
-        clip_actions = self.cfg.normalization.clip_actions
+        actions = self.reindex(actions)
+        clip_actions = self.cfg.normalization.clip_actions / self.cfg.control.action_scale
         self.actions = torch.clip(actions, -clip_actions, clip_actions).to(self.device)
+        
         # step physics and render each frame
         self.render()
         for _ in range(self.cfg.control.decimation):

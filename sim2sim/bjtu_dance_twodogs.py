@@ -103,7 +103,7 @@ class BJTUDance:
                       "dof_vel": 0.05,
                       "height_measurements": 5.0,
                       "clip_observations": 100.,
-                      "clip_actions": 1.2,
+                      "clip_actions": 2.5,
                       "action_scale": 0.25}
         default_dof_pos = [0.1,0.8,-1.5,  -0.1,0.8,-1.5,  0.1,1.,-1.5,  -0.1,1.,-1.5, 0,0,0, 0,0,0, 0,0]  # LF RF LH RH
         self.default_dof_pos = to_torch(default_dof_pos[0:self.num_acts], device=self.device, requires_grad=False)
