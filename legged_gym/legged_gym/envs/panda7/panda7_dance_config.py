@@ -38,88 +38,9 @@ class Panda7DnaceCfg(LeggedRobotCfg):
                      'joint7': 10., 'joint8': 10.}  # [N*m/rad]
         damping = {'hip': 2.0, 'thigh': 2.0, 'calf': 2.0,
                    'joint1': 2., 'joint2': 2., 'joint3': 2.,  # 12. 12. 12.
-                   'joint4': 0.1, 'joint5': 1., 'joint6': 1.,  # 0.8 1. 1.
+                   'joint4': 0.8, 'joint5': 1., 'joint6': 1.,  # 0.8 1. 1.
                    'joint7': 1., 'joint8': 1.}  # [N*m*s/rad]
         action_scale = 0.25  # action scale: target angle = actionScale * action + defaultAngle
-
-    class domain_rand(LeggedRobotCfg.domain_rand):
-        friction_range = [0.4, 2.0]
-        restitution_range = [0.0, 0.4]
-
-        max_push_ang_vel = 0.6
-        randomize_com = True
-        com_displacement_range = [-0.2, 0.2]
-
-        randomize_gains = True
-        stiffness_multiplier_range = [0.8, 1.2]  # Factor
-        damping_multiplier_range = [0.8, 1.2]    # Factor
-
-        randomize_torque = True
-        torque_multiplier_range = [0.8, 1.2]
-
-        randomize_link_mass = True
-        added_link_mass_range = [0.9, 1.1]
-
-        randomize_motor_offset = True
-        # Offset to add to the motor angles
-        motor_offset_range = [-0.035, 0.035]
-
-        randomize_joint_friction = False
-        randomize_joint_friction_each_joint = False
-        joint_friction_range = [0.01, 1.15]
-        joint_1_friction_range = [0.01, 1.15]
-        joint_2_friction_range = [0.01, 1.15]
-        joint_3_friction_range = [0.01, 1.15]
-        joint_4_friction_range = [0.5, 1.3]
-        joint_5_friction_range = [0.5, 1.3]
-        joint_6_friction_range = [0.01, 1.15]
-        joint_7_friction_range = [0.01, 1.15]
-        joint_8_friction_range = [0.01, 1.15]
-        joint_9_friction_range = [0.5, 1.3]
-        joint_10_friction_range = [0.5, 1.3]
-
-        randomize_joint_damping = False
-        randomize_joint_damping_each_joint = False
-        joint_damping_range = [0.3, 1.5]
-        joint_1_damping_range = [0.3, 1.5]
-        joint_2_damping_range = [0.3, 1.5]
-        joint_3_damping_range = [0.3, 1.5]
-        joint_4_damping_range = [0.9, 1.5]
-        joint_5_damping_range = [0.9, 1.5]
-        joint_6_damping_range = [0.3, 1.5]
-        joint_7_damping_range = [0.3, 1.5]
-        joint_8_damping_range = [0.3, 1.5]
-        joint_9_damping_range = [0.9, 1.5]
-        joint_10_damping_range = [0.9, 1.5]
-
-        randomize_joint_armature = True
-        randomize_joint_armature_each_joint = False
-        joint_armature_range = [0.0001, 0.05]     # Factor
-        joint_1_armature_range = [0.0001, 0.05]
-        joint_2_armature_range = [0.0001, 0.05]
-        joint_3_armature_range = [0.0001, 0.05]
-        joint_4_armature_range = [0.0001, 0.05]
-        joint_5_armature_range = [0.0001, 0.05]
-        joint_6_armature_range = [0.0001, 0.05]
-        joint_7_armature_range = [0.0001, 0.05]
-        joint_8_armature_range = [0.0001, 0.05]
-        joint_9_armature_range = [0.0001, 0.05]
-        joint_10_armature_range = [0.0001, 0.05]
-
-        add_lag = False
-        randomize_lag_timesteps = False
-        lag_timesteps_range = [0, 1]
-
-        randomize_coulomb_friction = True
-        joint_coulomb_range = [0.1, 1.0]
-        joint_viscous_range = [0.10, 0.90]
-
-        delay_update_global_steps = 24 * 2000
-        action_delay = False
-        action_curr_step = [1, 2]
-        action_curr_step_scratch = [0, 1]
-        action_delay_view = 1
-        action_buf_len = 8
 
     class asset(LeggedRobotCfg.asset):
         file = '{LEGGED_GYM_ROOT_DIR}/resources/robots/panda7_arm/urdf/panda7_arm.urdf'
@@ -177,14 +98,14 @@ class Panda7DanceBeatCfg(Panda7DnaceCfg):
     class rewards(Panda7DnaceCfg.rewards):
         class scales(Panda7DnaceCfg.rewards.scales):
             # 模仿奖励
-            track_root_pos = 0
-            track_root_height = 1.
-            track_root_rot = 1.
-            track_lin_vel_ref = 0
-            track_ang_vel_ref = 0
-            track_toe_pos = 5
-            track_dof_pos = 0
-            track_dof_vel = 0
+            track_root_pos = 0.
+            track_root_height = 0.5
+            track_root_rot = 2.0
+            track_lin_vel_ref = 1.0
+            track_ang_vel_ref = 1.0
+            track_toe_pos = 10.
+            track_dof_pos = 1
+            track_dof_vel = 1
             
             # 机械臂
             track_arm_dof_pos = 1
@@ -211,12 +132,12 @@ class Panda7DanceSwingCfg(Panda7DnaceCfg):
     class rewards(Panda7DnaceCfg.rewards):
         class scales(Panda7DnaceCfg.rewards.scales):
             # 模仿奖励
-            track_root_pos = 0
+            track_root_pos = 0.
             track_root_height = 0.5
-            track_root_rot = 2.
-            track_lin_vel_ref = 1
-            track_ang_vel_ref = 1
-            track_toe_pos = 10
+            track_root_rot = 2.0
+            track_lin_vel_ref = 1.0
+            track_ang_vel_ref = 1.0
+            track_toe_pos = 10.
             track_dof_pos = 1
             track_dof_vel = 1
             
