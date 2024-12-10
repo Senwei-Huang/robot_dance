@@ -98,9 +98,9 @@ class Panda7DanceBeatCfg(Panda7DnaceCfg):
     class rewards(Panda7DnaceCfg.rewards):
         class scales(Panda7DnaceCfg.rewards.scales):
             # 模仿奖励
-            track_root_pos = 0
+            track_root_pos = 0.
             track_root_height = 0.5
-            track_root_rot = 2.
+            track_root_rot = 2.0
             track_lin_vel_ref = 1.0
             track_ang_vel_ref = 1.0
             track_toe_pos = 10.
@@ -132,12 +132,12 @@ class Panda7DanceSwingCfg(Panda7DnaceCfg):
     class rewards(Panda7DnaceCfg.rewards):
         class scales(Panda7DnaceCfg.rewards.scales):
             # 模仿奖励
-            track_root_pos = 0
+            track_root_pos = 0.
             track_root_height = 0.5
-            track_root_rot = 2.
-            track_lin_vel_ref = 1
-            track_ang_vel_ref = 1
-            track_toe_pos = 10
+            track_root_rot = 2.0
+            track_lin_vel_ref = 1.0
+            track_ang_vel_ref = 1.0
+            track_toe_pos = 10.
             track_dof_pos = 1
             track_dof_vel = 1
             
