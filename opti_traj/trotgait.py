@@ -23,7 +23,7 @@ hopf_signal = np.zeros((num_row,8))
 
 go2 = utils.QuadrupedRobot()
 initPos = np.array([0.5, -0.5, -0.5, 0.5, 0, 0, 0, 0])
-gait = 'trot'
+gait = 'pace'
 cpg = CPG.cpgBuilder(initPos, gait=gait)
 
 # 欧拉法获取振荡信号

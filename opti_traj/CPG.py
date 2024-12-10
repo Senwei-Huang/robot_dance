@@ -35,6 +35,10 @@ class cpgBuilder:
             self.beta = 0.5
             self.T = 0.5
             self.phase = [0, np.pi, np.pi, 0]
+        if self.gait == 'spacetrot':
+            self.beta = 0.5
+            self.T = 0.4
+            self.phase = [0, np.pi, np.pi, 0]
         elif self.gait == 'pace':
             self.beta = 0.5
             self.T = 0.5

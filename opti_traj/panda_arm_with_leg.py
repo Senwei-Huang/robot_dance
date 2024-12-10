@@ -135,10 +135,10 @@ for i in range(num_row):
     r = S(x0=[0, -0.3, 0.6, -0.3, 0], lbx=arm_lb, ubx=arm_ub)
     q_opt = r['x']
     arm_dof_pos[i, :5] = q_opt.T
-# 机械臂末端在机身坐标系下的位置
+# 机械臂末端在世界系下的姿态
 for i in range(num_row):
     robot_arm_rot, arm_pos[i, :] = utils.arm_fk(arm_dof_pos[i, :5])
-    arm_rot[i, :] = utils.rotm2quaternion(robot_arm_rot)
+    arm_rot[i, :] = utils.rotm2quaternion(utils.quaternion2rotm(root_rot[i, :]) @ robot_arm_rot)
 
 # 机械臂关节角速度
 for i in range(num_row - 1):
