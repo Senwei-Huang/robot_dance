@@ -168,7 +168,7 @@ class LeggedRobot(BaseTask):
         self.base_lin_vel[:] = quat_rotate_inverse(self.base_quat, self.root_states[:, 7:10])
         self.base_ang_vel[:] = quat_rotate_inverse(self.base_quat, self.root_states[:, 10:13])
         self.projected_gravity[:] = quat_rotate_inverse(self.base_quat, self.gravity_vec)
-        self.base_euler_xyz = get_euler_xyz_tensor(self.base_quat)
+        self.base_euler = get_euler_xyz_tensor(self.base_quat)
         self.base_roll, self.base_pitch, self.base_yaw = euler_from_quaternion(self.base_quat)
 
         # rigid_state 里面装的是绝对坐标 使用 quat_rotate_inverse 将世界系下的足端位置转换为body系下的相对位置
@@ -181,6 +181,7 @@ class LeggedRobot(BaseTask):
         arm_end_pos = self.rigid_state[:, self.arm_link6_indice, 0:3].view(self.num_envs, -1) - self.base_pos
         self.arm_end_pos = quat_rotate_inverse(self.base_quat, arm_end_pos)
         self.arm_end_quat = self.rigid_state[:, self.arm_link6_indice, 3:7].view(self.num_envs, -1)
+        self.arm_end_euler = get_euler_xyz_tensor(self.arm_end_quat)
         
         self._post_physics_step_callback()
 
@@ -232,10 +233,7 @@ class LeggedRobot(BaseTask):
             self._reset_root_states(env_ids)
             self._reset_dofs(env_ids)
         else:
-            traj_idxs = self.motion_loader.weighted_traj_idx_sample_batch(len(env_ids))
-            init_times = np.zeros(len(env_ids), dtype=int)
-            # frames = self.motion_loader.get_full_frame_batch(len(env_ids))
-            frames = self.motion_loader.get_full_frame_at_time_batch(traj_idxs, init_times)
+            frames = self.motion_loader.get_full_frame_batch(len(env_ids))
             self._reset_dofs_amp(env_ids, frames)
             self._reset_root_states_amp(env_ids, frames)
 
@@ -335,24 +333,24 @@ class LeggedRobot(BaseTask):
     def compute_observations(self):
         """ Computes observations
         """
-        # base: pos quat lin_vel ang_vel 
-        base_pos_error = self.base_pos - self.frames[:, 0:3]
-        base_euler_error = get_euler_xyz_tensor(self.base_quat - self.frames[:, 3:7])
+        # base: pos euler lin_vel ang_vel  12个
+        base_pos_error = self.base_pos - self.env_origins - self.frames[:, 0:3]
+        base_euler_error = self.base_euler - get_euler_xyz_tensor(self.frames[:, 3:7])
         base_lin_vel_error = self.base_lin_vel - quat_rotate_inverse(self.frames[:, 3:7], self.frames[:, 7:10])
         base_lin_ang_error = self.base_ang_vel - quat_rotate_inverse(self.frames[:, 3:7], self.frames[:, 10:13])
-        # foot: pos q dq 
+        # foot: pos q dq  36个
         foot_pos_error = self.toe_pos_body - self.frames[:, 13:25]
         leg_dof_pos_error = self.dof_pos[:, 0:12] - self.frames[:, 25:37]  # LF RF LH RH
         leg_dof_vel_error = self.dof_vel[:, 0:12] - self.frames[:, 37:49]
-        # arm: pos quat q dq
+        # arm: pos euler q dq  18个
         arm_end_pos_error = self.arm_end_pos - self.frames[:, 49:52]
-        arm_end_rot_error = get_euler_xyz_tensor(self.arm_end_quat - self.frames[:, 52:56])
+        arm_end_euler_error = self.arm_end_euler - get_euler_xyz_tensor(self.frames[:, 52:56])
         arm_dof_pos_error = self.dof_pos[:, 12:18] - self.frames[:, 56:62]
         arm_dof_vel_error = self.dof_vel[:, 12:18] - self.frames[:, 62:68]
         
-        tracking_error  = torch.cat((base_pos_error, base_euler_error, base_lin_vel_error, base_lin_ang_error, 
-                                     foot_pos_error, leg_dof_pos_error, leg_dof_vel_error, 
-                                     arm_end_pos_error, arm_end_rot_error, arm_dof_pos_error, arm_dof_vel_error), dim=-1)
+        tracking_error = torch.cat((base_pos_error, base_euler_error, base_lin_vel_error, base_lin_ang_error, 
+                                    foot_pos_error, leg_dof_pos_error, leg_dof_vel_error, 
+                                    arm_end_pos_error, arm_end_euler_error, arm_dof_pos_error, arm_dof_vel_error), dim=-1)
         
         self.privileged_obs_buf = torch.cat((self.base_lin_vel * self.obs_scales.lin_vel,         # 3   0...3
                                              self.base_ang_vel * self.obs_scales.ang_vel,         # 3   3...6
@@ -360,8 +358,8 @@ class LeggedRobot(BaseTask):
                                              (self.dof_pos - self.default_dof_pos) * self.obs_scales.dof_pos, # 18   9...27
                                              self.dof_vel * self.obs_scales.dof_vel,              # 18  27...45
                                              self.actions,                                        # 18  45...63
-                                             self.base_euler_xyz * self.obs_scales.quat,          # 3   63...66
-                                             tracking_error                                       # 68  66...132 
+                                             self.base_euler * self.obs_scales.euler,             # 3   63...66
+                                             tracking_error                                       # 66  66...132 
                                              ), dim=-1)
         self.obs_buf = torch.cat((self.base_ang_vel * self.obs_scales.ang_vel,             # 3   0...3
                                   self.projected_gravity,                                  # 3   3...6
@@ -680,9 +678,9 @@ class LeggedRobot(BaseTask):
         self.rigid_state = gymtorch.wrap_tensor(rigid_body_state).view(self.num_envs, -1, 13) 
         self.dof_pos = self.dof_state.view(self.num_envs, self.num_dof, 2)[..., 0]  # [...,0]表示前面的全保留，最后的维度只要第一维
         self.dof_vel = self.dof_state.view(self.num_envs, self.num_dof, 2)[..., 1]
-        self.base_pos = self.root_states[:, 0:3]
+        self.base_pos = self.root_states[:, 0:3]  # 绝对坐标
         self.base_quat = self.root_states[:, 3:7]
-        self.base_euler_xyz = get_euler_xyz_tensor(self.base_quat)
+        self.base_euler = get_euler_xyz_tensor(self.base_quat)
         self.base_roll, self.base_pitch, self.base_yaw = euler_from_quaternion(self.base_quat)
 
         self.contact_forces = gymtorch.wrap_tensor(net_contact_forces).view(self.num_envs, -1, 3)  # shape: num_envs, num_bodies, xyz axis
@@ -1043,14 +1041,26 @@ class LeggedRobot(BaseTask):
         return heights.view(self.num_envs, -1) * self.terrain.cfg.vertical_scale
 
     #------------ reward functions----------------
+    def _reward_termination(self):
+        # Terminal reward / penalty
+        return self.reset_buf * ~self.time_out_buf
+      
+    def _reward_tracking_lin_vel(self):
+        # Tracking of linear velocity commands (xy axes)
+        lin_vel_error = torch.sum(torch.square(self.commands[:, :2] - self.base_lin_vel[:, :2]), dim=1)
+        return torch.exp(-lin_vel_error / self.cfg.rewards.tracking_sigma)
+
+    def _reward_tracking_ang_vel(self):
+        # Tracking of angular velocity commands (yaw) 
+        ang_vel_error = torch.square(self.commands[:, 2] - self.base_ang_vel[:, 2])
+        return torch.exp(-ang_vel_error / self.cfg.rewards.tracking_sigma)
+      
     def _reward_lin_vel_z(self):
         # Penalize z axis base linear velocity
         return torch.square(self.base_lin_vel[:, 2])
 
     def _reward_ang_vel_xy(self):
         # Penalize xy axes base angular velocity
-        # a = torch.square(self.base_ang_vel[:, :2])
-        # b = torch.sum(torch.square(self.base_ang_vel[:, :2]), dim=1)
         return torch.sum(torch.square(self.base_ang_vel[:, :2]), dim=1)
 
     def _reward_orientation(self):
@@ -1064,8 +1074,6 @@ class LeggedRobot(BaseTask):
 
     def _reward_torques(self):
         # Penalize torques
-        # print(self.torques)
-        # print(torch.sum(torch.square(self.torques), dim=1))
         return torch.sum(torch.square(self.torques), dim=1)
 
     def _reward_dof_vel(self):
@@ -1082,12 +1090,7 @@ class LeggedRobot(BaseTask):
 
     def _reward_collision(self):
         # Penalize collisions on selected bodies
-        return torch.sum(1. * (torch.norm(self.contact_forces[:, self.penalised_contact_indices, :], dim=-1) > 0.1),
-                         dim=1)
-
-    def _reward_termination(self):
-        # Terminal reward / penalty
-        return self.reset_buf * ~self.time_out_buf
+        return torch.sum(1. * (torch.norm(self.contact_forces[:, self.penalised_contact_indices, :], dim=-1) > 0.1), dim=1)
 
     def _reward_dof_pos_limits(self):
         # Penalize dof positions too close to the limit
@@ -1098,24 +1101,11 @@ class LeggedRobot(BaseTask):
     def _reward_dof_vel_limits(self):
         # Penalize dof velocities too close to the limit
         # clip to max error = 1 rad/s per joint to avoid huge penalties
-        return torch.sum(
-            (torch.abs(self.dof_vel) - self.dof_vel_limits * self.cfg.rewards.soft_dof_vel_limit).clip(min=0., max=1.),
-            dim=1)
+        return torch.sum((torch.abs(self.dof_vel) - self.dof_vel_limits * self.cfg.rewards.soft_dof_vel_limit).clip(min=0., max=1.), dim=1)
 
     def _reward_torque_limits(self):
         # penalize torques too close to the limit
-        return torch.sum(
-            (torch.abs(self.torques) - self.torque_limits * self.cfg.rewards.soft_torque_limit).clip(min=0.), dim=1)
-
-    def _reward_tracking_lin_vel(self):
-        # Tracking of linear velocity commands (xy axes)
-        lin_vel_error = torch.sum(torch.square(self.commands[:, :2] - self.base_lin_vel[:, :2]), dim=1)
-        return torch.exp(-lin_vel_error / self.cfg.rewards.tracking_sigma)
-
-    def _reward_tracking_ang_vel(self):
-        # Tracking of angular velocity commands (yaw) 
-        ang_vel_error = torch.square(self.commands[:, 2] - self.base_ang_vel[:, 2])
-        return torch.exp(-ang_vel_error / self.cfg.rewards.tracking_sigma)
+        return torch.sum((torch.abs(self.torques) - self.torque_limits * self.cfg.rewards.soft_torque_limit).clip(min=0.), dim=1)
 
     def _reward_feet_air_time(self):
         # Reward long steps
@@ -1138,85 +1128,69 @@ class LeggedRobot(BaseTask):
 
     def _reward_stand_still(self):
         # Penalize motion at zero commands
-        return torch.sum(torch.abs(self.dof_pos - self.default_dof_pos), dim=1) * (
-                torch.norm(self.commands[:, :2], dim=1) < 0.1)
+        return torch.sum(torch.abs(self.dof_pos - self.default_dof_pos), dim=1) * (torch.norm(self.commands[:, :2], dim=1) < 0.1)
 
     def _reward_feet_contact_forces(self):
         # penalize high contact forces
-        return torch.sum((torch.norm(self.contact_forces[:, self.feet_indices, :],
-                                     dim=-1) - self.cfg.rewards.max_contact_force).clip(min=0.), dim=1)
+        return torch.sum((torch.norm(self.contact_forces[:, self.feet_indices, :], dim=-1) - self.cfg.rewards.max_contact_force).clip(min=0.), dim=1)
+
 
     #------------ dance reward functions----------------
     def _reward_track_root_pos(self):
-        # 奖励跟踪root的位置，self.base_pos装的也是绝对坐标
-        return torch.exp(-20 * torch.sum(torch.square(self.frames[:, 0:3] - (self.base_pos - self.env_origins)), dim=1))
-
+        # Tracking of root position ref
+        root_pos_error = torch.square(self.frames[:, 0:3] - (self.base_pos - self.env_origins))
+        return torch.exp(-20 * torch.sum(root_pos_error, dim=1))
+        # return torch.exp(-torch.sum(root_pos_error, dim=1) / self.cfg.rewards.tracking_sigma)
+      
     def _reward_track_root_height(self):
-        # 奖励跟踪root的高度，self.base_pos装的也是绝对坐标
-        return torch.exp(-20 * torch.square(self.frames[:, 2] - self.base_pos[:, 2]))
+        # Tracking of root height ref
+        root_height_error = torch.square(self.frames[:, 2] - self.base_pos[:, 2])
+        return torch.exp(-20 * root_height_error)
+        # return torch.exp(-root_height_error / self.cfg.rewards.tracking_sigma)
 
     def _reward_track_root_rot(self):
-        # 奖励跟踪root方向
-        # if True:
-        #     print(f'root_rot_ref:  {self.frames[:, 3:7]}')
-        #     print(f'root_rot:  {self.base_quat}')
-        #     # print(torch.sum(torch.square(self.frames[:, 3:7] - self.base_quat), dim=1))
-        #     print(torch.exp(-200 * torch.sum(torch.square(self.frames[:, 3:7] - self.base_quat), dim=1)))
-        #     print(torch.exp(-20 * torch.sum(torch.square(self.frames[:, 3:7] - self.base_quat), dim=1)))
-        return torch.exp(-200 * torch.sum(torch.square(self.frames[:, 3:7] - self.base_quat), dim=1))
-
-    def _reward_tracking_yaw(self):
-        _, _, yaw_ref = euler_from_quaternion(self.frames[:, 3:7])
-        rew = torch.exp(-torch.abs(yaw_ref - self.base_yaw))
-        return rew
+        # Tracking of root rotation ref
+        root_rot_error = torch.sum(torch.square(get_euler_xyz_tensor(self.frames[:, 3:7]) - self.base_euler), dim=1)
+        return torch.exp(-200 * root_rot_error)
       
     def _reward_track_lin_vel_ref(self):
         # 跟踪参考动作的线速度
         return torch.exp(-2 * torch.sum(torch.square(self.frames[:, 7:10] - self.base_lin_vel), dim=1))
 
     def _reward_track_ang_vel_ref(self):
-        # 跟踪参考动作的角速度，与_reward_tracking_ang_vel不一样，这是跟踪命令速度
+        # 跟踪参考动作的角速度，与_reward_tracking_ang_vel跟踪命令速度不一样
         return torch.exp(-0.2 * torch.sum(torch.square(self.frames[:, 10:13] - self.base_ang_vel), dim=1))
 
     def _reward_track_toe_pos(self):
         # 跟踪末端执行器的相对位置
-        temp = torch.exp(-200 * torch.sum(torch.square(self.frames[:, 13:25] - self.toe_pos_body), dim=1))
-        # verrify excepted [0, -1, 0]
-        # a = torch.tensor([0, 0, torch.sin(torch.tensor(torch.pi/4)), torch.cos(torch.tensor(torch.pi/4))]).repeat(4, 1)
-        # b = torch.tensor([1., 0, 0])
-        # c = quat_rotate_inverse(a, b.repeat(4, 1))
-        # print(f"toe pos ref is : {self.frames[:, 13:25]}")
-        # print(f"toe pos is :{self.toe_pos_body}")
-        # print(torch.sum(torch.square(self.frames[:, 13:25] - self.toe_pos_body), dim=1))
-        # print(f"toe reward is:{temp}")
-        # print(50*'!')
-        return temp
+        return torch.exp(-200 * torch.sum(torch.square(self.frames[:, 13:25] - self.toe_pos_body), dim=1))
 
     def _reward_track_dof_pos(self):
         return torch.exp(-5 * torch.sum(torch.square(self.frames[:, 25:37] - self.dof_pos[:, :12]), dim=1))
+
+    def _reward_track_dof_vel(self):
+        return torch.exp(-0.1 * torch.sum(torch.square(self.frames[:, 37:49] - self.dof_vel[:, :12]), dim=1))
 
     def _reward_track_arm_dof_pos(self):
         return torch.exp(-0.1 * torch.sum(torch.square(self.frames[:, self.motion_loader.ARM_JOINT_POS_START_IDX:
                                                                       self.motion_loader.ARM_JOINT_POS_END_IDX] -
                                                        self.dof_pos[:, 12:18]), dim=1))
-    
-    def _reward_track_griper_dof_pos(self):
-        return torch.exp(-1000 * torch.sum(torch.square(self.frames[:, 62:64] - self.dof_pos[:, 18:20]), dim=1))
-          
-    def _reward_track_dof_vel(self):
-        return torch.exp(-0.1 * torch.sum(torch.square(self.frames[:, 37:49] - self.dof_vel[:, :12]), dim=1))
 
     def _reward_track_arm_dof_vel(self):
         return torch.exp(-1 * torch.sum(torch.square(self.frames[:, self.motion_loader.ARM_JOINT_VEL_START_IDX:
                                                                     self.motion_loader.ARM_JOINT_VEL_END_IDX] -
                                                      self.dof_vel[:, 12:18]), dim=1))
     
-    def _reward_track_arm_pos(self):
+    def _reward_track_arm_end_pos(self):
         return torch.exp(-100 * torch.sum(torch.square(self.frames[:, 49:52] - self.arm_end_pos), dim=1))
 
-    def _reward_track_arm_rot(self):
-        return torch.exp(-10 * torch.sum(torch.square(self.frames[:, 52:56] - self.arm_end_quat), dim=1))
-          
+    def _reward_track_arm_end_rot(self):
+        arm_end_euler_ref = get_euler_xyz_tensor(self.frames[:, 52:56])
+        return torch.exp(-10 * torch.sum(torch.square(arm_end_euler_ref - self.arm_end_euler), dim=1))
+    
+    def _reward_track_griper_dof_pos(self):
+        return torch.exp(-1000 * torch.sum(torch.square(self.frames[:, 62:64] - self.dof_pos[:, 18:20]), dim=1))
+      
     def _reward_jump(self):
         ref_jump_buf = self.frames[:, 15] > -self.frames[:, 2] #足端位置是相对
         # sim_jump_buf = self.rigid_state[:, self.feet_indices, 2].view(self.num_envs,-1) > 0.04   # for go2

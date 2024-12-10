@@ -130,23 +130,21 @@ class LeggedRobotCfg(BaseConfig):
         max_push_vel_xy = 1.
 
     class rewards:
-
         class scales:
             termination = -0.0
             tracking_lin_vel = 1.0 # 跟踪随机指令的线速度
             tracking_ang_vel = 0.5 # 跟踪随机指令的角速度
-            tracking_yaw = 0.5
             lin_vel_z = -2.0
             ang_vel_xy = -0.05
-            orientation = -1.0
+            orientation = -0.
+            base_height = -0.
             torques = -0.00001
             dof_vel = -0.
             dof_acc = -2.5e-7
-            base_height = -0.0
-            feet_air_time =  1.0
-            collision = -1.
-            feet_stumble = -0.0 
             action_rate = -0.01
+            collision = -1.
+            feet_air_time = 1.0
+            feet_stumble = -0.0
             stand_still = -0.
 
         only_positive_rewards = True # if true negative total rewards are clipped at zero (avoids early termination problems)
@@ -163,7 +161,7 @@ class LeggedRobotCfg(BaseConfig):
             ang_vel = 0.25
             dof_pos = 1.0
             dof_vel = 0.05
-            quat = 1.
+            euler = 1.
             height_measurements = 5.0
         clip_observations = 100.
         clip_actions = 1.2
@@ -177,7 +175,7 @@ class LeggedRobotCfg(BaseConfig):
             lin_vel = 0.1
             ang_vel = 0.2
             gravity = 0.05
-            quat = 0.03
+            euler = 0.03
             height_measurements = 0.1
 
     # viewer camera:
