@@ -143,8 +143,8 @@ class Panda7DanceSwingCfg(Panda7DnaceCfg):
             # 机械臂
             track_arm_dof_pos = 1
             track_arm_dof_vel = 2
-            track_arm_end_pos = 10.
-            track_arm_end_rot = 10.
+            track_arm_end_pos = 10.  # 0
+            track_arm_end_rot = 10.  # 0
             track_griper_dof_pos = 0
 
     class env(Panda7DnaceCfg.env):
