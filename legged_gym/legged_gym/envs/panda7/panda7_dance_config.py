@@ -41,7 +41,6 @@ class Panda7DnaceCfg(LeggedRobotCfg):
                    'joint4': 0.1, 'joint5': 1., 'joint6': 1.,  # 0.8 1. 1.
                    'joint7': 1., 'joint8': 1.}  # [N*m*s/rad]
         action_scale = 0.25  # action scale: target angle = actionScale * action + defaultAngle
-        decimation = 4  # decimation: Number of control action updates @ sim DT per policy DT
 
     class domain_rand(LeggedRobotCfg.domain_rand):
         friction_range = [0.4, 2.0]
@@ -122,26 +121,12 @@ class Panda7DnaceCfg(LeggedRobotCfg):
         action_delay_view = 1
         action_buf_len = 8
 
-    class noise(LeggedRobotCfg.noise):
-        add_noise = True  # False
-        add_height_noise = False
-        noise_level = 1.0  # scales other values
-        quantize_height = True
-
-        class noise_scales(LeggedRobotCfg.noise.noise_scales):
-            rotation = 0.05
-            dof_pos = 0.01
-            dof_vel = 1.5
-            lin_vel = 0.05
-            ang_vel = 0.2
-            gravity = 0.05
-            height_measurements = 0.1
-
     class asset(LeggedRobotCfg.asset):
         file = '{LEGGED_GYM_ROOT_DIR}/resources/robots/panda7_arm/urdf/panda7_arm.urdf'
         name = "panda7_arm"
         foot_name = "FOOT"
         arm_name = "arm_link"
+        arm_link6_name = "arm_link6"
         penalize_contacts_on = ["thigh", "calf", "base", "arm_link0", "arm_link1", "arm_link2",
                                 "arm_link3", "arm_link4", "arm_link5", "arm_link6"]
         terminate_after_contacts_on = ["base"]
@@ -149,14 +134,14 @@ class Panda7DnaceCfg(LeggedRobotCfg):
 
     class rewards(LeggedRobotCfg.rewards):
         soft_dof_pos_limit = 0.9
-        base_height_target = 0.55
-        target_feet_height = 0.05
+        only_positive_rewards = False
 
     class env(LeggedRobotCfg.env):
         motion_files = None
         frame_duration = 1 / 50
         RSI = 1  # 参考状态初始化
-        num_observations = 63  # 94
+        num_observations = 60  # 94 63
+        num_privileged_obs = 60
         num_actions = 18  # 12
         # debug = True
 
@@ -183,8 +168,8 @@ class Panda7DanceBeatCfg(Panda7DnaceCfg):
             action_rate = -0.1
             collision = -5.
             lin_vel_z = -1.0
-            feet_air_time = 0
-            survival = 2  #
+            feet_air_time = 0.
+            survival = 0.  #
 
             # 模仿奖励
             tracking_lin_vel = 0
