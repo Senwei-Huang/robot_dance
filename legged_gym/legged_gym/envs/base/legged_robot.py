@@ -168,18 +168,19 @@ class LeggedRobot(BaseTask):
         self.base_lin_vel[:] = quat_rotate_inverse(self.base_quat, self.root_states[:, 7:10])
         self.base_ang_vel[:] = quat_rotate_inverse(self.base_quat, self.root_states[:, 10:13])
         self.projected_gravity[:] = quat_rotate_inverse(self.base_quat, self.gravity_vec)
-        
-        self.roll, self.pitch, self.base_yaw = euler_from_quaternion(self.base_quat)
+        self.base_euler_xyz = get_euler_xyz_tensor(self.base_quat)
+        self.base_roll, self.base_pitch, self.base_yaw = euler_from_quaternion(self.base_quat)
 
-        self.toe_pos_world = self.rb_states[:, self.feet_indices, 0:3].view(self.num_envs, -1)
+        # rigid_state 里面装的是绝对坐标 使用 quat_rotate_inverse 将世界系下的足端位置转换为body系下的相对位置
+        self.toe_pos_world = self.rigid_state[:, self.feet_indices, 0:3].view(self.num_envs, -1)
         self.toe_pos_body[:, :3] = quat_rotate_inverse(self.base_quat, self.toe_pos_world[:, :3]-self.base_pos)
         self.toe_pos_body[:, 3:6] = quat_rotate_inverse(self.base_quat, self.toe_pos_world[:, 3:6]-self.base_pos)
         self.toe_pos_body[:, 6:9] = quat_rotate_inverse(self.base_quat, self.toe_pos_world[:, 6:9]-self.base_pos)
         self.toe_pos_body[:, 9:12] = quat_rotate_inverse(self.base_quat, self.toe_pos_world[:, 9:12]-self.base_pos)
         
-        arm_end_pos = self.rb_states[:, self.self.arm_link6_indice, 0:3].view(self.num_envs, -1) - self.base_pos
+        arm_end_pos = self.rigid_state[:, self.self.arm_link6_indice, 0:3].view(self.num_envs, -1) - self.base_pos
         self.arm_end_pos = quat_rotate_inverse(self.base_quat, arm_end_pos)
-        self.arm_end_quat = self.rb_states[:, self.self.arm_link6_indice, 3:7].view(self.num_envs, -1)
+        self.arm_end_quat = self.rigid_state[:, self.self.arm_link6_indice, 3:7].view(self.num_envs, -1)
         
         self._post_physics_step_callback()
 
@@ -353,19 +354,20 @@ class LeggedRobot(BaseTask):
                                      foot_pos_error, leg_dof_pos_error, leg_dof_vel_error, 
                                      arm_end_pos_error, arm_end_rot_error, arm_dof_pos_error, arm_dof_vel_error), dim=-1)
         
-        self.privileged_obs_buf = torch.cat((self.base_lin_vel * self.obs_scales.lin_vel,         # 3   # 3
-                                             self.base_ang_vel * self.obs_scales.ang_vel,         # 3   # 6
-                                             self.projected_gravity,                              # 3   # 9
-                                             (self.dof_pos - self.default_dof_pos) * self.obs_scales.dof_pos, # 18   # 27
-                                             self.dof_vel * self.obs_scales.dof_vel,              # 18  # 45
-                                             self.actions,                                        # 18  # 63
-                                             tracking_error                                       # 68
+        self.privileged_obs_buf = torch.cat((self.base_lin_vel * self.obs_scales.lin_vel,         # 3   0...3
+                                             self.base_ang_vel * self.obs_scales.ang_vel,         # 3   3...6
+                                             self.projected_gravity,                              # 3   6...9
+                                             (self.dof_pos - self.default_dof_pos) * self.obs_scales.dof_pos, # 18   9...27
+                                             self.dof_vel * self.obs_scales.dof_vel,              # 18  27...45
+                                             self.actions,                                        # 18  45...63
+                                             self.base_euler_xyz * self.obs_scales.quat,          # 3   63...66
+                                             tracking_error                                       # 68  66...132 
                                              ), dim=-1)
-        self.obs_buf = torch.cat((self.base_ang_vel * self.obs_scales.ang_vel,             # 3   # 3
-                                  self.projected_gravity,                                  # 3   # 6
-                                  (self.dof_pos - self.default_dof_pos) * self.obs_scales.dof_pos, # 18   # 24
-                                  self.dof_vel * self.obs_scales.dof_vel,                  # 18  # 42
-                                  self.actions,                                            # 18  # 60
+        self.obs_buf = torch.cat((self.base_ang_vel * self.obs_scales.ang_vel,             # 3   0...3
+                                  self.projected_gravity,                                  # 3   3...6
+                                  (self.dof_pos - self.default_dof_pos) * self.obs_scales.dof_pos, # 18   6...24
+                                  self.dof_vel * self.obs_scales.dof_vel,                  # 18  24...42
+                                  self.actions,                                            # 18  42...60
                                   ), dim=-1)
         
         # add perceptive inputs if not blind
@@ -662,11 +664,10 @@ class LeggedRobot(BaseTask):
         """ Initialize torch tensors which will contain simulation states and processed quantities
         """
         # get gym GPU state tensors
-        actor_root_state = self.gym.acquire_actor_root_state_tensor(
-            self.sim)  # (num_actors,13)返回root状态，位置，旋转（四元数），速度角速度，13D
-        dof_state_tensor = self.gym.acquire_dof_state_tensor(self.sim)  # （num_dofs,2）关节数量，位置与速度
-        net_contact_forces = self.gym.acquire_net_contact_force_tensor(self.sim)  # （num_rigid_bodies, 3），xyz三轴的力
-        _rb_states = self.gym.acquire_rigid_body_state_tensor(self.sim)
+        actor_root_state = self.gym.acquire_actor_root_state_tensor(self.sim)  # root状态:位置/四元数/速度/角速度 [num_actors,13]
+        dof_state_tensor = self.gym.acquire_dof_state_tensor(self.sim)  # 关节状态:位置/速度 [num_dofs,2]
+        net_contact_forces = self.gym.acquire_net_contact_force_tensor(self.sim)  # xyz三轴的力 [num_rigid_bodies,3]
+        rigid_body_state = self.gym.acquire_rigid_body_state_tensor(self.sim)
 
         self.gym.refresh_rigid_body_state_tensor(self.sim)
         self.gym.refresh_dof_state_tensor(self.sim)  # 更新状态buffer
@@ -674,20 +675,17 @@ class LeggedRobot(BaseTask):
         self.gym.refresh_net_contact_force_tensor(self.sim)
 
         # create some wrapper tensors for different slices
-        # 打包的函数，actor_root_state不能直接看是哪些数字，只能看到形状，用这个函数打包之后就能看到具体数字
-        self.root_states = gymtorch.wrap_tensor(actor_root_state)
+        self.root_states = gymtorch.wrap_tensor(actor_root_state)  # 用这个函数打包之后就能看到具体数字 否则只能看到形状，
         self.dof_state = gymtorch.wrap_tensor(dof_state_tensor)
-        self.rb_states = gymtorch.wrap_tensor(_rb_states).view(self.num_envs, -1, 13)
-        # 下面是把dof_state转化一下，因为num_dofs = num_envs * 12(关节数量num_dof)
-        # ...[...,0]表示前面的全保留，最后的维度只要第一维
-        self.dof_pos = self.dof_state.view(self.num_envs, self.num_dof, 2)[..., 0]
+        self.rigid_state = gymtorch.wrap_tensor(rigid_body_state).view(self.num_envs, -1, 13) 
+        self.dof_pos = self.dof_state.view(self.num_envs, self.num_dof, 2)[..., 0]  # [...,0]表示前面的全保留，最后的维度只要第一维
         self.dof_vel = self.dof_state.view(self.num_envs, self.num_dof, 2)[..., 1]
         self.base_pos = self.root_states[:, 0:3]
         self.base_quat = self.root_states[:, 3:7]
+        self.base_euler_xyz = get_euler_xyz_tensor(self.base_quat)
+        self.base_roll, self.base_pitch, self.base_yaw = euler_from_quaternion(self.base_quat)
 
-
-        self.contact_forces = gymtorch.wrap_tensor(net_contact_forces).view(self.num_envs, -1,
-                                                                            3)  # shape: num_envs, num_bodies, xyz axis
+        self.contact_forces = gymtorch.wrap_tensor(net_contact_forces).view(self.num_envs, -1, 3)  # shape: num_envs, num_bodies, xyz axis
 
         # initialize some data used later on
         self.common_step_counter = 0
@@ -1182,9 +1180,6 @@ class LeggedRobot(BaseTask):
 
     def _reward_track_toe_pos(self):
         # 跟踪末端执行器的相对位置
-        # rb_states里面装的是绝对坐标
-        # 使用quat_rotate_inverse将世界系下的末端相对足端位置转换为body系下的相对位置
-        # rb_states里的数据滞后于base_pos,还没弄清楚：post_physics_step中一进去就会更新函数()，保证数据最新
         temp = torch.exp(-200 * torch.sum(torch.square(self.frames[:, 13:25] - self.toe_pos_body), dim=1))
         # verrify excepted [0, -1, 0]
         # a = torch.tensor([0, 0, torch.sin(torch.tensor(torch.pi/4)), torch.cos(torch.tensor(torch.pi/4))]).repeat(4, 1)
@@ -1224,9 +1219,9 @@ class LeggedRobot(BaseTask):
           
     def _reward_jump(self):
         ref_jump_buf = self.frames[:, 15] > -self.frames[:, 2] #足端位置是相对
-        # sim_jump_buf = self.rb_states[:, self.feet_indices, 2].view(self.num_envs,-1) > 0.04   # for go2
-        sim_jump_buf = self.rb_states[:, self.feet_indices, 2].view(self.num_envs, -1) > 0.07  # for panda7
-        # print(self.rb_states[:, self.feet_indices, 2].view(self.num_envs, -1))
+        # sim_jump_buf = self.rigid_state[:, self.feet_indices, 2].view(self.num_envs,-1) > 0.04   # for go2
+        sim_jump_buf = self.rigid_state[:, self.feet_indices, 2].view(self.num_envs, -1) > 0.07  # for panda7
+        # print(self.rigid_state[:, self.feet_indices, 2].view(self.num_envs, -1))
         jump_buf = ref_jump_buf & sim_jump_buf[:, 0] & sim_jump_buf[:, 1] & sim_jump_buf[:, 2] & sim_jump_buf[:, 3]
         return jump_buf
 
