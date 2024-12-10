@@ -2,7 +2,7 @@
 python legged_gym/legged_gym/scripts/train.py --task=panda7_arm_swing
 python legged_gym/legged_gym/scripts/train.py --task=panda7_arm_swing --num_envs=1
 
-python legged_gym/legged_gym/scripts/train.py --task=panda7_arm_beat
+python legged_gym/legged_gym/scripts/train.py --task=panda7_arm_beat --sim_device cuda:1 --rl_device cuda:1 --headless
 
 
 # play
