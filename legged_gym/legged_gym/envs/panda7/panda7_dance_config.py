@@ -182,7 +182,7 @@ class Panda7DanceBeatCfg(Panda7DnaceCfg):
             track_root_rot = 1.
             track_lin_vel_ref = 0
             track_ang_vel_ref = 0
-            track_toe_pos = 5  #
+            track_toe_pos = 5
             track_dof_pos = 0
             track_dof_vel = 0
             
@@ -191,6 +191,7 @@ class Panda7DanceBeatCfg(Panda7DnaceCfg):
             track_arm_dof_vel = 1
             track_arm_end_pos = 0
             track_arm_end_rot = 0
+            track_griper_dof_pos = 0
 
     class env(Panda7DnaceCfg.env):
         motion_files = "opti_traj/output_panda_fixed_gripper/panda_beat.txt"
@@ -213,7 +214,6 @@ class Panda7DanceSwingCfg(Panda7DnaceCfg):
             track_root_pos = 0
             track_root_height = 0.5
             track_root_rot = 2.
-            orientation = 0.
             track_lin_vel_ref = 1
             track_ang_vel_ref = 1
             track_toe_pos = 10
@@ -222,10 +222,10 @@ class Panda7DanceSwingCfg(Panda7DnaceCfg):
             
             # 机械臂
             track_arm_dof_pos = 1
-            track_griper_dof_pos = 0
             track_arm_dof_vel = 2
-            track_arm_pos = 0
-            track_arm_rot = 0
+            track_arm_end_pos = 0
+            track_arm_end_rot = 0
+            track_griper_dof_pos = 0
 
     class env(Panda7DnaceCfg.env):
         motion_files = "opti_traj/output_panda_fixed_gripper/panda_swing.txt"
