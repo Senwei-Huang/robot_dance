@@ -178,9 +178,9 @@ class LeggedRobot(BaseTask):
         self.toe_pos_body[:, 6:9] = quat_rotate_inverse(self.base_quat, self.toe_pos_world[:, 6:9]-self.base_pos)
         self.toe_pos_body[:, 9:12] = quat_rotate_inverse(self.base_quat, self.toe_pos_world[:, 9:12]-self.base_pos)
         
-        arm_end_pos = self.rigid_state[:, self.self.arm_link6_indice, 0:3].view(self.num_envs, -1) - self.base_pos
+        arm_end_pos = self.rigid_state[:, self.arm_link6_indice, 0:3].view(self.num_envs, -1) - self.base_pos
         self.arm_end_pos = quat_rotate_inverse(self.base_quat, arm_end_pos)
-        self.arm_end_quat = self.rigid_state[:, self.self.arm_link6_indice, 3:7].view(self.num_envs, -1)
+        self.arm_end_quat = self.rigid_state[:, self.arm_link6_indice, 3:7].view(self.num_envs, -1)
         
         self._post_physics_step_callback()
 
