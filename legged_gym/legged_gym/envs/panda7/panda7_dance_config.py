@@ -60,8 +60,9 @@ class Panda7DnaceCfg(LeggedRobotCfg):
             # regularization reward
             tracking_lin_vel = 0.
             tracking_ang_vel = 0.
-            lin_vel_z = -0.  # -1.0
-            ang_vel_xy = -0.
+            lin_vel_z = -1.0  # -1.0 -0.
+            ang_vel_xy = -0.05  # -0.05 -0.
+            orientation = -0.
             torques = -0.00001
             action_rate = -0.1
             collision = -5.
@@ -69,7 +70,7 @@ class Panda7DnaceCfg(LeggedRobotCfg):
             feet_air_time = 0.
             
             survival = 0.
-            test = 0.  
+            test = 0. 
 
     class env(LeggedRobotCfg.env):
         motion_files = None

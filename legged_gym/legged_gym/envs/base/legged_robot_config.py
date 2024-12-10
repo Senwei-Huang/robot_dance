@@ -136,7 +136,7 @@ class LeggedRobotCfg(BaseConfig):
             tracking_ang_vel = 0.5 # 跟踪随机指令的角速度
             lin_vel_z = -2.0
             ang_vel_xy = -0.05
-            orientation = -0.
+            orientation = -1.0
             base_height = -0.
             torques = -0.00001
             dof_vel = -0.
