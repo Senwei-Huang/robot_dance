@@ -135,6 +135,20 @@ class Panda7DnaceCfg(LeggedRobotCfg):
     class rewards(LeggedRobotCfg.rewards):
         soft_dof_pos_limit = 0.9
         only_positive_rewards = False
+        class scales:
+            # regularization reward
+            tracking_lin_vel = 0.
+            tracking_ang_vel = 0.
+            lin_vel_z = -0.  # -1.0
+            ang_vel_xy = -0.
+            torques = -0.00001
+            action_rate = -0.1
+            collision = -5.
+            dof_pos_limits = -10.0
+            feet_air_time = 0.
+            
+            survival = 0.
+            test = 0.  
 
     class env(LeggedRobotCfg.env):
         motion_files = None
@@ -162,31 +176,21 @@ class Panda7DanceBeatCfg(Panda7DnaceCfg):
 
     class rewards(Panda7DnaceCfg.rewards):
         class scales(Panda7DnaceCfg.rewards.scales):
-            # regularization reward
-            torques = -0.00001  #
-            dof_pos_limits = -10.0
-            action_rate = -0.1
-            collision = -5.
-            lin_vel_z = -1.0
-            feet_air_time = 0.
-            survival = 0.  #
-
             # 模仿奖励
-            tracking_lin_vel = 0
-            tracking_ang_vel = 0
             track_root_pos = 0
             track_root_height = 1.
             track_root_rot = 1.
             track_lin_vel_ref = 0
             track_ang_vel_ref = 0
+            track_toe_pos = 5  #
             track_dof_pos = 0
             track_dof_vel = 0
-            track_toe_pos = 5  #
+            
             # 机械臂
             track_arm_dof_pos = 1
             track_arm_dof_vel = 1
-            track_arm_pos = 0
-            track_arm_rot = 0
+            track_arm_end_pos = 0
+            track_arm_end_rot = 0
 
     class env(Panda7DnaceCfg.env):
         motion_files = "opti_traj/output_panda_fixed_gripper/panda_beat.txt"
@@ -205,27 +209,17 @@ class Panda7DanceSwingCfg(Panda7DnaceCfg):
 
     class rewards(Panda7DnaceCfg.rewards):
         class scales(Panda7DnaceCfg.rewards.scales):
-            # regularization reward
-            torques = -0.00001
-            dof_pos_limits = -10.0
-            action_rate = -0.1
-            collision = -5.
-            lin_vel_z = -1.0
-            feet_air_time = 0
-            survival = 0
-            test = 0
             # 模仿奖励
-            tracking_lin_vel = 0
-            tracking_ang_vel = 0
             track_root_pos = 0
             track_root_height = 0.5
             track_root_rot = 2.
             orientation = 0.
             track_lin_vel_ref = 1
             track_ang_vel_ref = 1
+            track_toe_pos = 10
             track_dof_pos = 1
             track_dof_vel = 1
-            track_toe_pos = 10
+            
             # 机械臂
             track_arm_dof_pos = 1
             track_griper_dof_pos = 0
