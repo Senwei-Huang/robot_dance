@@ -22,12 +22,12 @@ def nn_convert():
     policy.to(device)
     policy.eval()  # 模型置为评估模式
     
-    # load_path = "./model/swing/model_1500"
-    # load_path = "./model/wave/model_6000"
+    # load_path = "../model/swing/model_1500"
+    # load_path = "../model/wave/model_6000"
     
-    load_path = "./model/swing/model_15000"
-    # load_path = "./model/wave/model_6900"
-    # load_path = "./model/turnjump/model_7450"
+    load_path = "../model/swing/model_15000"
+    # load_path = "../model/wave/model_6900"
+    # load_path = "../model/turnjump/model_7450"
     
     # 加载模型参数
     pt_path =  load_path + ".pt"  # 模型路径 "../legged_gym/logs/panda7_fixed_arm_swing/Dec03_18-08-47_"

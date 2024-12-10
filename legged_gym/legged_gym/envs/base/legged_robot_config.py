@@ -96,7 +96,7 @@ class LeggedRobotCfg(BaseConfig):
         # action scale: target angle = actionScale * action + defaultAngle
         action_scale = 0.5
         # decimation: Number of control action updates @ sim DT per policy DT
-        decimation = 4
+        decimation = 4 # decimation: Number of control action updates @ sim DT per policy DT
 
     class asset:
         file = ""
@@ -135,13 +135,14 @@ class LeggedRobotCfg(BaseConfig):
             termination = -0.0
             tracking_lin_vel = 1.0 # 跟踪随机指令的线速度
             tracking_ang_vel = 0.5 # 跟踪随机指令的角速度
+            tracking_yaw = 0.5
             lin_vel_z = -2.0
             ang_vel_xy = -0.05
             orientation = -1.0
             torques = -0.00001
             dof_vel = -0.
             dof_acc = -2.5e-7
-            base_height = -0.
+            base_height = -0.0
             feet_air_time =  1.0
             collision = -1.
             feet_stumble = -0.0 
