@@ -38,8 +38,8 @@ class Panda7DnaceCfg(LeggedRobotCfg):
                      'joint7': 10., 'joint8': 10.}  # [N*m/rad]
         damping = {'hip': 2.0, 'thigh': 2.0, 'calf': 2.0,
                    'joint1': 12., 'joint2': 12., 'joint3': 12.,  # 12. 12. 12.  2 2 2
-                   'joint4': 0.1, 'joint5': 1., 'joint6': 1.,  # 0.8 1. 1.   0.1 1. 1.
-                   'joint7': 1., 'j1oint8': 1.}  # [N*m*s/rad]
+                   'joint4': 0.1, 'joint5': 0.1, 'joint6': 0.1,  # 0.8 1. 1.   0.1 1. 1.
+                   'joint7': 1., 'joint8': 1.}  # [N*m*s/rad]
         action_scale = 0.25  # action scale: target angle = actionScale * action + defaultAngle
 
     class asset(LeggedRobotCfg.asset):
